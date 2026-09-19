@@ -110,7 +110,7 @@ $ astra exec "…"
 model: gpt-6-astra
 approval: never
 sandbox: danger-full-access
-reasoning effort: max
+reasoning effort: none
 $ codex plugin list | grep -c 'installed, enabled'
 13
 ```

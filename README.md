@@ -136,11 +136,16 @@ posture that overwrites it erases browser use. The way out is the command line,
 which nothing rewrites. Details in [docs/browser-use.md](docs/browser-use.md).
 
 ```sh
-astra                        # full auto, 872000 window
+astra                        # full auto, 872000 window, no subagents
 astra --safe                 # same, but keep the workspace-write sandbox
 astra exec "…"               # one-shot
 ASTRA_CONTEXT=272000 astra   # stay under the price cliff for one run
+ASTRA_COMPACT=400000 astra   # compact earlier for one run
+ASTRA_CODEX_BIN=… astra      # point at a different codex binary
 ```
+
+Everything after the flags is passed through to `codex` untouched, so
+`astra resume`, `astra review` and `astra --help` behave as you expect.
 
 ## Requirements
 
