@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "astra",
+  "description": "The everyday GPT-6-Astra posture: effort `high`, planning at `xhigh`, compaction at 200K to stay on the near side of the 272K surcharge threshold. `model_reasoning_effort` is set explicitly because leaving it unset yields `none`, the one effort Astra rejects. This variant owns AGENTS.md and deliberately does not own config.toml: the ChatGPT desktop app rewrites that file from scratch on every launch, and it is where browser use is registered. On a machine with the app, apply the posture through bin/astra instead.",
+  "sources": [
+    "https://learn.chatgpt.com/docs/config-file/config-reference",
+    "https://openai.com/index/gpt-6-astra/",
+    "docs/measurements.md"
+  ],
+  "requires": {
+    "codex_cli": ">=0.155.0"
+  }
+}

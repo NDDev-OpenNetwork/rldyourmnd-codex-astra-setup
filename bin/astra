@@ -1,0 +1,67 @@
+#!/usr/bin/env sh
+# astra — one entry point for the GPT-6-Astra posture, for both the CLI and the
+# desktop app's own Codex.
+#
+# Why this exists rather than a configuration file alone: the ChatGPT desktop
+# app **rewrites `$CODEX_HOME/config.toml` from scratch on every launch**,
+# discarding any key it did not write (measured twice; see
+# docs/measurements.md). A posture that lives only in that file survives until
+# the next time the app starts, and no longer.
+#
+# So the posture is carried on the command line, where nothing can overwrite it,
+# and the file the app owns is left exactly as the app wants it -- which is what
+# keeps browser-use working, because the app's `[marketplaces.*]` and
+# `[plugins."chrome@openai-bundled"]` blocks are what register the native
+# messaging bridge.
+#
+# Those blocks carry absolute paths and are not portable: this build expands
+# neither `~` nor `${HOME}` in a marketplace `source`, so they cannot be shipped
+# in a repository. Leaving them to the app is not a compromise here, it is the
+# only correct owner.
+#
+# Usage:
+#   astra [--ultra] [codex args...]     interactive
+#   astra exec "prompt"                 one-shot, same posture
+#   ASTRA_EFFORT=max astra              override the effort for one run
+#
+# Anything after the flags is passed through to `codex` untouched, so
+# `astra exec`, `astra resume`, `astra --help` all behave as you would expect.
+
+set -eu
+
+CODEX_BIN="${ASTRA_CODEX_BIN:-codex}"
+
+# Everyday posture. `astra-ultra` in setups/ documents the reasoning behind the
+# escalation variant; --ultra selects it here.
+EFFORT="${ASTRA_EFFORT:-high}"
+PLAN_EFFORT="${ASTRA_PLAN_EFFORT:-xhigh}"
+COMPACT="${ASTRA_COMPACT:-200000}"
+
+case "${1:-}" in
+  --ultra)
+    shift
+    EFFORT="${ASTRA_EFFORT:-ultra}"
+    PLAN_EFFORT="${ASTRA_PLAN_EFFORT:-ultra}"
+    # Compact earlier at this effort: `ultra` spends more tokens per turn and so
+    # reaches the 272K surcharge threshold sooner.
+    COMPACT="${ASTRA_COMPACT:-160000}"
+    ;;
+esac
+
+# `model_reasoning_effort` is not optional on Astra. Unset, the session header
+# reads `reasoning effort: none`, and `none` is the single value Astra rejects --
+# it suppresses the reasoning budget entirely, while the catalog's own scale
+# starts at `low`.
+exec "$CODEX_BIN" \
+  -c model='"gpt-6-astra"' \
+  -c model_provider='"openai"' \
+  -c model_reasoning_effort="\"$EFFORT\"" \
+  -c plan_mode_reasoning_effort="\"$PLAN_EFFORT\"" \
+  -c auto_compact_token_limit="$COMPACT" \
+  -c model_reasoning_summary='"detailed"' \
+  -c web_search='"live"' \
+  -c features.memories=true \
+  -c features.multi_agent_v2=true \
+  -c features.recommended_plugins=true \
+  -c features.secret_auth_storage=true \
+  "$@"

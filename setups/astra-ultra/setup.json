@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "id": "astra-ultra",
+  "description": "The escalation posture: effort `ultra`, the top of Astra's six-level scale and the level at which the model may delegate work to sub-tasks of its own. Published write-ups list five efforts and omit it; this build's own model catalog is what says it exists, and expressing it at all requires Codex CLI 0.155.0 or newer. Compaction drops to 160K rather than rising, because `ultra` spends more tokens per turn and reaches the 272K surcharge threshold sooner. Fast mode is left unset on purpose: it multiplies every applicable rate by two and compounds with that same threshold.",
+  "sources": [
+    "https://learn.chatgpt.com/docs/config-file/config-reference",
+    "https://openai.com/index/gpt-6-astra/",
+    "docs/measurements.md"
+  ],
+  "requires": {
+    "codex_cli": ">=0.155.0"
+  }
+}
