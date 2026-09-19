@@ -3,10 +3,11 @@
 This repository carries a GPT-6-Astra posture for Codex. It is one config file
 and one shell script — no build, no tests, no runtime.
 
-**Scope is deliberately small.** Four things are settled: the autonomy posture,
-the context window, no subagents, and reasoning effort. Capability features and
-web search are *not* set, and that is not an oversight. Do not add a key because
-it seems obviously good — add one when it has been decided.
+**Scope is deliberately small.** Decided: the model and its reasoning effort,
+reasoning visibility, the autonomy posture, web search, the context window,
+memory across sessions, telemetry, and no subagents. Everything else stays at
+product defaults, and that is not an oversight. Do not add a key because it
+seems obviously good — add one when it has been decided.
 
 ## Validate with `--strict-config`, never with `doctor`
 
@@ -34,6 +35,10 @@ tell you which struct it belongs to. Do not use it as a validator.
 | `sandbox_mode` | `danger-full-access` | |
 | `model_context_window` | `872000` | this account's `max_context_window` |
 | `model_auto_compact_token_limit` | `700000` | 128400 under the 828400 usable ceiling |
+| `model_reasoning_summary` | `detailed` | the only visibility into what `xhigh` bought |
+| `web_search` | `live` | cutoff is 2026-04-30 |
+| `memories.*` + `features.memories` | on | durable state in CODEX_HOME |
+| `analytics` / `feedback` | `false` | both default to on |
 | `agents.enabled` | `false` | the switch that actually removes the subagent tools |
 | `features.multi_agent` | `false` | flips a real flag; inert on the prompt |
 
@@ -100,7 +105,7 @@ CODEX_HOME="$H" codex exec --strict-config --skip-git-repo-check --ephemeral x
 CODEX_HOME="$H" codex doctor --all | grep 'feature flags'
 ```
 
-The feature count must read `46 enabled · 1 overridden`, against
+The feature count must read `47 enabled · 2 overridden`, against
 `47 enabled · 0 overridden` for an empty config. Any other number means
 something was turned on that nobody decided on.
 

@@ -24,6 +24,11 @@ model = "gpt-6-astra"
 # runs without subagents.
 model_reasoning_effort = "xhigh"
 
+# The only window into what a high effort actually bought. Without summaries an
+# `xhigh` turn is indistinguishable from a cheap one until the invoice arrives.
+# Accepted: auto, concise, detailed, none.
+model_reasoning_summary = "detailed"
+
 # ── Full auto ───────────────────────────────────────────────────────────────
 #
 # This pair is exactly what `--yolo` sets. Verified by comparing session
@@ -34,6 +39,14 @@ model_reasoning_effort = "xhigh"
 # different product; neither is used here.
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
+
+# ── Knowledge ───────────────────────────────────────────────────────────────
+#
+# The most capable of the four modes this build names -- `disabled`, `cached`,
+# `indexed`, `live` -- where the product default is `cached`. Astra's knowledge
+# cutoff is 2026-04-30, so without live search it cannot see what changed after
+# that date.
+web_search = "live"
 
 # ── Context ─────────────────────────────────────────────────────────────────
 #
@@ -89,5 +102,27 @@ model_auto_compact_token_limit = 700000
 [agents]
 enabled = false
 
+# ── Memory across sessions ──────────────────────────────────────────────────
+#
+# `features.memories` is one of the four capabilities this build ships stable
+# and disabled. Turned on here together with both halves of the behaviour:
+# `use_memories` reads what has accumulated, `generate_memories` writes it.
+#
+# This is durable state in `$CODEX_HOME`, not session context. It persists
+# across sessions by design, which is the point and also the cost.
+[memories]
+use_memories = true
+generate_memories = true
+
+# ── Telemetry ───────────────────────────────────────────────────────────────
+#
+# Both default to on.
+[analytics]
+enabled = false
+
+[feedback]
+enabled = false
+
 [features]
+memories = true
 multi_agent = false

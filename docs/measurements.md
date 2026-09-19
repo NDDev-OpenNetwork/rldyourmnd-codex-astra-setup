@@ -113,10 +113,14 @@ Feature count, against an empty config as control:
 | `config.toml` | feature flags |
 | --- | --- |
 | empty (control) | `47 enabled · 0 overridden` |
-| this setup | `46 enabled · 1 overridden` |
+| this setup | `47 enabled · 2 overridden` |
 
-Exactly one capability off and nothing else touched. Any other number means
-something was enabled that nobody decided on.
+Two deliberate changes — `memories` on, `multi_agent` off — which cancel in the
+`enabled` count and do not cancel in the override tally. Note that here the two
+instruments agree: two changes, two overrides. The anomaly recorded further down
+(four changes reporting one override) is still unexplained and still stands.
+
+Session header adds `reasoning summaries: detailed`.
 
 The counter says nothing about `agents.enabled`, which is not a feature — its
 effect is measured on the rendered prompt instead, below. All five
@@ -262,6 +266,24 @@ whether it appeared once or thirty times. The numbers here come from
 These are readings about Codex 0.155.1 and the account's catalog. They are not
 all acted on: several describe capabilities this setup deliberately leaves
 unset.
+
+## Accepted variants, read off the binary
+
+`--strict-config` reports the accepted set when given a bad value, which is a
+cheaper way to learn a schema than reading about it:
+
+| Key | Accepted |
+| --- | --- |
+| `history.persistence` | `save-all`, `none` |
+| `model_verbosity` | `low`, `medium`, `high` |
+| `personality` | `none`, `friendly`, `pragmatic` |
+| `model_reasoning_summary` | `auto`, `concise`, `detailed`, `none` |
+| `web_search` | `disabled`, `cached`, `indexed`, `live` |
+| `file_opener` | `vscode`, `vscode-insiders`, `windsurf`, `cursor`, `none` |
+| `cli_auth_credentials_store` | `file`, `keyring`, `auto`, `ephemeral` |
+| `model_auto_compact_token_limit_scope` | `total`, `body_after_prefix` |
+
+`service_tier` accepts a free string rather than an enum.
 
 ## The model catalog outranks published docs
 

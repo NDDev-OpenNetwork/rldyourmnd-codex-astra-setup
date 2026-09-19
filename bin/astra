@@ -59,8 +59,15 @@ exec "$CODEX_BIN" \
   -c approval_policy='"never"' \
   -c sandbox_mode="\"$SANDBOX\"" \
   -c model_reasoning_effort="\"$EFFORT\"" \
+  -c model_reasoning_summary='"detailed"' \
+  -c web_search='"live"' \
   -c model_context_window="$CONTEXT" \
   -c model_auto_compact_token_limit="$COMPACT" \
   -c agents.enabled=false \
+  -c features.memories=true \
+  -c memories.use_memories=true \
+  -c memories.generate_memories=true \
+  -c analytics.enabled=false \
+  -c feedback.enabled=false \
   -c features.multi_agent=false \
   "$@"

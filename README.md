@@ -3,9 +3,10 @@
 A GPT-6-Astra posture for Codex, in one implementation that works for the CLI
 and for the ChatGPT desktop app at the same time.
 
-> **Scope so far: the autonomy posture, the context window, no subagents, and
-> reasoning effort.** Nothing else is configured, on purpose — capability
-> features and web search stay absent until they are decided.
+> **Decided so far:** the model and its reasoning effort, reasoning visibility,
+> the autonomy posture, web search, the context window, memory across sessions,
+> telemetry, and no subagents. Everything else stays at product defaults until
+> it is decided.
 
 > **Status: written and locally verified, but no turn has completed.** The
 > account's usage limit was exhausted throughout the measurement session, so
@@ -16,10 +17,13 @@ and for the ChatGPT desktop app at the same time.
 
 ```toml
 model = "gpt-6-astra"
-model_reasoning_effort = "xhigh"
+model_reasoning_effort  = "xhigh"
+model_reasoning_summary = "detailed"
 
 approval_policy = "never"
 sandbox_mode    = "danger-full-access"
+
+web_search = "live"
 
 model_context_window           = 872000
 model_auto_compact_token_limit = 700000
@@ -27,13 +31,26 @@ model_auto_compact_token_limit = 700000
 [agents]
 enabled = false
 
+[memories]
+use_memories      = true
+generate_memories = true
+
+[analytics]
+enabled = false
+
+[feedback]
+enabled = false
+
 [features]
+memories    = true
 multi_agent = false
 ```
 
-That is the whole file. `codex doctor` reports `46 enabled · 1 overridden` for
-it, against `47 enabled · 0 overridden` for an empty config, and all five
-multi-agent tool names count `0` in the rendered prompt.
+That is the whole file. `codex doctor` reports `47 enabled · 2 overridden` for it, against
+`47 enabled · 0 overridden` for an empty config — two deliberate changes,
+`memories` on and `multi_agent` off, which cancel in the count and not in the
+override tally. All five multi-agent tool names count `0` in the rendered
+prompt.
 
 ## Full auto
 
@@ -195,6 +212,25 @@ The reference qualifies `xhigh` as *model-dependent, Responses API only*.
 
 Verified as far as it can be without a completed turn: the session header reads
 `reasoning effort: xhigh`, from the config and through the launcher alike.
+
+## The other decisions
+
+**`web_search = "live"`** — the most capable of `disabled | cached | indexed |
+live`, where the product default is `cached`. Astra's knowledge cutoff is
+2026-04-30; without live search it cannot see anything after that date.
+
+**`model_reasoning_summary = "detailed"`** — at `xhigh` this is the only window
+into what the effort bought. Without it a deep turn is indistinguishable from a
+cheap one until the invoice arrives.
+
+**Memory across sessions is on.** `features.memories` is one of the four
+capabilities this build ships stable-but-disabled; both halves are enabled —
+`use_memories` reads, `generate_memories` writes. This is durable state in
+`$CODEX_HOME`, not session context: it persists by design, which is both the
+point and the cost.
+
+**Telemetry off.** `analytics.enabled` and `feedback.enabled` both default to
+on and are both turned off. The credential store is left at its default.
 
 ## Every key is documented upstream
 
