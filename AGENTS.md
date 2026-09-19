@@ -3,9 +3,9 @@
 This repository carries a GPT-6-Astra posture for Codex. It is one config file
 and one shell script — no build, no tests, no runtime.
 
-**Scope is deliberately small.** Three things are settled: the autonomy posture,
-the context window, and no subagents. Reasoning effort, capability features and
-web search are *not* set, and they are not oversights. Do not add a key because
+**Scope is deliberately small.** Four things are settled: the autonomy posture,
+the context window, no subagents, and reasoning effort. Capability features and
+web search are *not* set, and that is not an oversight. Do not add a key because
 it seems obviously good — add one when it has been decided.
 
 ## Validate with `--strict-config`, never with `doctor`
@@ -29,12 +29,17 @@ tell you which struct it belongs to. Do not use it as a validator.
 
 | Key | Value | Why |
 | --- | --- | --- |
+| `model_reasoning_effort` | `xhigh` | unset means `none`, which Astra rejects outright |
 | `approval_policy` | `never` | with the next row, exactly what `--yolo` sets |
 | `sandbox_mode` | `danger-full-access` | |
 | `model_context_window` | `872000` | this account's `max_context_window` |
 | `model_auto_compact_token_limit` | `700000` | 128400 under the 828400 usable ceiling |
 | `agents.enabled` | `false` | the switch that actually removes the subagent tools |
 | `features.multi_agent` | `false` | flips a real flag; inert on the prompt |
+
+**Never remove `model_reasoning_effort`.** Unset is not a neutral default: it
+sends `none`, and the request fails with `Unsupported value: 'none' is not
+supported with the 'gpt-6-astra' model` before the agent answers.
 
 **872000, not 1000000.** A larger number is not a bigger window, it is a wrong
 one — the catalog ceiling is 872000 and `supports_experimental_context` is

@@ -9,6 +9,21 @@
 
 model = "gpt-6-astra"
 
+# ── Reasoning ───────────────────────────────────────────────────────────────
+#
+# `xhigh` — chosen for how Astra actually works, not as a midpoint.
+#
+# This key is **not optional on this model.** Left unset, the session header
+# reads `reasoning effort: none`, and the request then fails outright with
+#
+#     Unsupported value: 'none' is not supported with the 'gpt-6-astra' model
+#
+# before the agent answers at all (openai/codex#44184). Astra accepts `low`,
+# `medium`, `high`, `xhigh` and `max`; this build's catalog additionally offers
+# `ultra`, which delegates to sub-tasks and so does not belong in a posture that
+# runs without subagents.
+model_reasoning_effort = "xhigh"
+
 # ── Full auto ───────────────────────────────────────────────────────────────
 #
 # This pair is exactly what `--yolo` sets. Verified by comparing session

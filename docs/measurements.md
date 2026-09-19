@@ -284,22 +284,35 @@ Also in the entry: `shell_type: unified_exec`, `tool_mode: code_mode_only`,
 `additional_speed_tiers: ["fast"]`,
 `truncation_policy: {mode: tokens, limit: 10000}`.
 
-## Reasoning effort reaches the request — and is currently unset
+## Reasoning effort: `none` is a hard failure, not a default
 
 Config parsing accepts every effort string, including `none`, so parsing proves
-nothing. The session header does show what would be sent:
+nothing. The session header shows what would be sent:
 
 ```
 model: gpt-6-astra
-reasoning effort: ultra
+reasoning effort: xhigh
 ```
 
-Confirmed for `ultra`, `max` and `high`. **With no `model_reasoning_effort` set
-— which is the current state of this repository — the header reads
-`reasoning effort: none`**, and `none` is documented as the one effort Astra
-rejects. That could not be tested against the server.
+Confirmed for `xhigh` (the setting), and previously for `high`, `max` and
+`ultra`.
 
-This is the main open risk, recorded in the README.
+**Leaving the key unset is the one setting that breaks the model.** The header
+then reads `reasoning effort: none`, and the request fails outright:
+
+```
+Unsupported value: 'none' is not supported with the 'gpt-6-astra' model
+```
+
+[openai/codex#44184](https://github.com/openai/codex/issues/44184) reports this
+against 0.153.4, with the task failing before the agent answers. The accepted
+set there is `low`, `medium`, `high`, `xhigh`, `max` — **five**, with no
+`ultra`, while this build's 0.155.1 catalog reports six including it. The issue
+predates this pin, and server acceptance of `ultra` remains untested here.
+
+An earlier revision of this repository shipped with the key unset, on the
+reasoning that reasoning had not been decided. That left a configuration which
+could not complete a single turn.
 
 ## Feature registry at 0.155.1
 
@@ -407,11 +420,25 @@ is.
 
 # Open items
 
-1. `reasoning effort: none` is what the current configuration sends, and `none`
-   is documented as rejected by Astra. Untested — quota.
-2. Whether `multi_agent = false` withholds the `spawn_agent` tool. Untested —
-   the prompt is not evidence and no turn completed.
-3. Whether `model_context_window` above 872000 is clamped. Untested — needs
-   `/status` in an interactive session.
+Two earlier items are now closed:
 
-All three need one thing: a completed turn.
+- ~~whether `none` is rejected~~ — it is, with an exact error string, and the
+  setup now sets `xhigh`
+- ~~whether the subagent switch works~~ — the feature flag does not, and
+  `agents.enabled` does; measured on the prompt
+
+What remains:
+
+1. **No turn has completed.** The usage limit held for the entire session, so
+   every reading here is taken before a request is answered. `xhigh` is a
+   documented-accepted value and reaches the wire — the header says so — but
+   server acceptance has not been observed.
+2. **Whether `model_context_window` above 872000 is clamped.** Needs `/status`
+   inside an interactive session.
+3. **Whether `ultra` is accepted server-side.** This build's catalog lists it as
+   a supported reasoning level; the accepted set in
+   [openai/codex#44184](https://github.com/openai/codex/issues/44184) has five
+   and omits it. That issue predates this pin. Not settled either way, and not
+   used by this setup regardless — `ultra` delegates to sub-tasks.
+
+All three need the same thing.

@@ -3,9 +3,9 @@
 A GPT-6-Astra posture for Codex, in one implementation that works for the CLI
 and for the ChatGPT desktop app at the same time.
 
-> **Scope so far: the autonomy posture, the context window, and no subagents.**
-> Nothing else is configured yet, on purpose. Reasoning effort, capability
-> features and web search are deliberately absent until they are decided.
+> **Scope so far: the autonomy posture, the context window, no subagents, and
+> reasoning effort.** Nothing else is configured, on purpose — capability
+> features and web search stay absent until they are decided.
 
 > **Status: written and locally verified, but no turn has completed.** The
 > account's usage limit was exhausted throughout the measurement session, so
@@ -16,6 +16,7 @@ and for the ChatGPT desktop app at the same time.
 
 ```toml
 model = "gpt-6-astra"
+model_reasoning_effort = "xhigh"
 
 approval_policy = "never"
 sandbox_mode    = "danger-full-access"
@@ -161,13 +162,26 @@ Everything after the flags is passed through to `codex` untouched, so
 - `@openai/codex` **0.155.0 or newer**
 - for browser use: the ChatGPT desktop app, installed and launched at least once
 
-## Known open item
+## Reasoning effort is not optional on this model
 
-With no `model_reasoning_effort` set — and it is deliberately not set, because
-reasoning has not been decided — the session header reads
-`reasoning effort: none`. Published guidance says `none` is the one effort Astra
-**rejects**. That could not be confirmed here: the usage limit blocked every
-request. If turns fail once quota returns, this is the first thing to look at.
+`xhigh`, chosen for how Astra works rather than as a midpoint.
+
+Leaving the key unset is not a neutral default — it is the one setting the model
+refuses. The session header then reads `reasoning effort: none`, and the request
+fails before the agent answers at all:
+
+```
+Unsupported value: 'none' is not supported with the 'gpt-6-astra' model
+```
+
+([openai/codex#44184](https://github.com/openai/codex/issues/44184).) Astra
+accepts `low`, `medium`, `high`, `xhigh` and `max`. This build's catalog offers
+a sixth, `ultra`, which the catalog describes as maximum reasoning *with
+automatic task delegation* — so it does not belong in a posture that runs
+without subagents.
+
+Verified as far as it can be without a completed turn: the session header reads
+`reasoning effort: xhigh`, from the config and through the launcher alike.
 
 ## On trusting this repository
 

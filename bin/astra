@@ -20,6 +20,7 @@
 #   astra --safe [codex args...]       same, but keep the workspace-write sandbox
 #   astra exec "prompt"                one-shot, same posture
 #   ASTRA_CONTEXT=272000 astra         stay under the price cliff for one run
+#   ASTRA_EFFORT=max astra             raise the reasoning effort for one run
 #
 # Anything after the flags is passed through to `codex` untouched.
 
@@ -30,6 +31,11 @@ CODEX_BIN="${ASTRA_CODEX_BIN:-codex}"
 # 872000 is this account's `max_context_window`, of which 95% -- 828400 -- is
 # usable. 1M does not exist here; that figure is the API model's window.
 # 700000 leaves 128400 tokens of headroom under it.
+# Not optional: unset yields `reasoning effort: none`, which Astra rejects
+# outright with "Unsupported value: 'none' is not supported with the
+# 'gpt-6-astra' model" before the agent answers (openai/codex#44184).
+EFFORT="${ASTRA_EFFORT:-xhigh}"
+
 CONTEXT="${ASTRA_CONTEXT:-872000}"
 COMPACT="${ASTRA_COMPACT:-700000}"
 
@@ -52,6 +58,7 @@ exec "$CODEX_BIN" \
   -c model='"gpt-6-astra"' \
   -c approval_policy='"never"' \
   -c sandbox_mode="\"$SANDBOX\"" \
+  -c model_reasoning_effort="\"$EFFORT\"" \
   -c model_context_window="$CONTEXT" \
   -c model_auto_compact_token_limit="$COMPACT" \
   -c agents.enabled=false \
