@@ -68,6 +68,13 @@ exec "$CODEX_BIN" \
   -c model_context_window="$CONTEXT" \
   -c model_auto_compact_token_limit="$COMPACT" \
   -c agents.enabled=false \
+  -c shell_environment_policy.inherit='"all"' \
+  -c browser_use.allow_history_access=true \
+  -c browser_use.default_origin_policy.access='"allow"' \
+  -c browser_use.default_origin_policy.downloads='"allow"' \
+  -c browser_use.default_origin_policy.uploads='"allow"' \
+  -c computer_use.default_app_access='"allow"' \
+  -c history.persistence='"save-all"' \
   -c features.memories=true \
   -c memories.use_memories=true \
   -c memories.generate_memories=true \

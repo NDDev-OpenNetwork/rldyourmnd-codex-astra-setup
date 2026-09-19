@@ -17,38 +17,40 @@ and for the ChatGPT desktop app at the same time.
 
 ```toml
 model = "gpt-6-astra"
-model_reasoning_effort  = "xhigh"
+model_reasoning_effort = "xhigh"
 model_reasoning_summary = "detailed"
-
 approval_policy = "never"
-sandbox_mode    = "danger-full-access"
-
-personality     = "pragmatic"
+sandbox_mode = "danger-full-access"
+personality = "pragmatic"
 model_verbosity = "medium"
-
 tool_output_token_limit = 32000
-project_doc_max_bytes   = 65536
-
+project_doc_max_bytes = 65536
 web_search = "live"
-
-model_context_window           = 872000
+model_context_window = 872000
 model_auto_compact_token_limit = 700000
-
 [agents]
 enabled = false
-
+[shell_environment_policy]
+inherit = "all"
+[browser_use]
+allow_history_access = true
+[browser_use.default_origin_policy]
+access    = "allow"
+downloads = "allow"
+uploads   = "allow"
+[computer_use]
+default_app_access = "allow"
+[history]
+persistence = "save-all"
 [memories]
-use_memories      = true
+use_memories = true
 generate_memories = true
-
 [analytics]
 enabled = false
-
 [feedback]
 enabled = false
-
 [features]
-memories    = true
+memories = true
 multi_agent = false
 ```
 
@@ -248,6 +250,18 @@ failure mode is silent truncation of instructions.
 
 Compaction at 700000 is 84.5% of the 828400 usable ceiling, inside the 80–85%
 band that published tuning advice recommends for long autonomous sessions.
+
+**The environment is inherited whole, and that includes the SSH agent.**
+`shell_environment_policy.inherit = "all"` is the product default, written down
+here because the consequence must not be discovered by accident: the built-in
+filter strips names containing `KEY`, `SECRET` or `TOKEN` — so `GITHUB_TOKEN`
+goes — but `SSH_AUTH_SOCK`, `SSH_AGENT_PID` and `GPG_AGENT_INFO` contain none of
+those words and survive. With no sandbox and no approvals, every command the
+model runs can push, force-push and sign. `gh` will not authenticate while
+`git push` over SSH will.
+
+**Browser and app access are opened explicitly** — history access on, and
+`access`, `downloads`, `uploads` all `allow`, plus `computer_use.default_app_access`.
 
 **Telemetry off.** `analytics.enabled` and `feedback.enabled` both default to
 on and are both turned off. The credential store is left at its default.

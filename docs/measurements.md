@@ -48,7 +48,42 @@ passing result mean something.
 **`codex doctor` does not validate.** A config consisting only of
 
 ```toml
-totally_invented_key_xyz = 1
+model = "gpt-6-astra"
+model_reasoning_effort = "xhigh"
+model_reasoning_summary = "detailed"
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+personality = "pragmatic"
+model_verbosity = "medium"
+tool_output_token_limit = 32000
+project_doc_max_bytes = 65536
+web_search = "live"
+model_context_window = 872000
+model_auto_compact_token_limit = 700000
+[agents]
+enabled = false
+[shell_environment_policy]
+inherit = "all"
+[browser_use]
+allow_history_access = true
+[browser_use.default_origin_policy]
+access    = "allow"
+downloads = "allow"
+uploads   = "allow"
+[computer_use]
+default_app_access = "allow"
+[history]
+persistence = "save-all"
+[memories]
+use_memories = true
+generate_memories = true
+[analytics]
+enabled = false
+[feedback]
+enabled = false
+[features]
+memories = true
+multi_agent = false
 ```
 
 reports `✓ config loaded · config.toml parse ok`. "It parses" is never evidence
@@ -279,6 +314,62 @@ whether it appeared once or thirty times. The numbers here come from
 These are readings about Codex 0.155.1 and the account's catalog. They are not
 all acted on: several describe capabilities this setup deliberately leaves
 unset.
+
+## The environment reaching the model, audited
+
+`shell_environment_policy.inherit` defaults to **`all`**: every variable of the
+parent shell reaches the subprocesses the model spawns. The built-in filter
+removes any variable whose **name** contains `KEY`, `SECRET` or `TOKEN`, and on
+this host it does fire:
+
+```
+✂ GITHUB_TOKEN · GIT_CONFIG_KEY_0..7 · STARSHIP_SESSION_KEY · CLAUDE_CODE_MESSAGING_TOKEN
+```
+
+It does **not** fire on these, because their names contain none of the three
+words:
+
+```
+→ SSH_AUTH_SOCK = /run/user/1000/keyring/ssh
+→ SSH_AGENT_PID
+→ GPG_AGENT_INFO
+```
+
+`ssh-add -l` on this host lists three loaded ED25519 keys — the GitHub key, a
+work key, and the estate key. So with `sandbox_mode = "danger-full-access"` and
+`approval_policy = "never"`, every command the model runs can push, force-push,
+sign commits and reach anything those keys reach, including the private control
+plane. Nothing asks.
+
+Note the asymmetry this produces: `gh` will not authenticate, because
+`GITHUB_TOKEN` is stripped, while `git push` over SSH will work, because the
+agent socket is not.
+
+This is kept deliberately, and written into the setup rather than left implicit,
+so the consequence is discovered on purpose. Published guidance for an
+unsandboxed agent is `inherit = "none"` with an explicit `set`; that is not what
+this posture wants.
+
+## Guardian and auto-review do nothing here
+
+`approvals_reviewer` accepts `user`, `auto_review` and `guardian_subagent`.
+Auto-review intercepts approval requests that would otherwise stop for a human —
+and with `approval_policy = "never"` there are none, so there is nothing to
+review. `guardian_subagent` is additionally a subagent, which this posture
+disables.
+
+The `guardian_approval` feature ships enabled and is inert here. It is left
+alone rather than disabled, because turning off a feature that does nothing buys
+nothing.
+
+## Access is opened explicitly
+
+`browser_use.default_origin_policy` is a **struct**, not a string: `access`,
+`downloads` and `uploads` each take `allow` or `deny`, and `full_cdp_access`
+takes the same pair rather than a boolean. `browser_use.downloads`,
+`browser_use.uploads` and `browser_use.full_cdp_access` do **not** exist at the
+top level of the section — `--strict-config` rejects all three as unknown
+fields.
 
 ## Budgets, chosen by arithmetic
 

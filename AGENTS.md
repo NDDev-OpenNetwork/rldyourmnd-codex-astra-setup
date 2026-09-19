@@ -42,6 +42,9 @@ tell you which struct it belongs to. Do not use it as a validator.
 | `personality` / `model_verbosity` | `pragmatic` / `medium` | verbosity states the default |
 | `tool_output_token_limit` | `32000` | ~125 KB whole; no subagent to absorb a truncation |
 | `project_doc_max_bytes` | `65536` | default 32768 truncates instructions silently |
+| `shell_environment_policy.inherit` | `all` | the default — and the SSH agent reaches every command |
+| `browser_use` / `computer_use` | open | history, access, downloads, uploads, apps |
+| `history.persistence` | `save-all` | the default; memory generation depends on it |
 | `agents.enabled` | `false` | the switch that actually removes the subagent tools |
 | `features.multi_agent` | `false` | flips a real flag; inert on the prompt |
 

@@ -141,6 +141,55 @@ model_auto_compact_token_limit = 700000
 [agents]
 enabled = false
 
+# ── Environment reaching the model's subprocesses ───────────────────────────
+#
+# `all` is the product default, and it is written down because the consequence
+# has to be discovered on purpose rather than by accident.
+#
+# The built-in filter strips any variable whose **name** contains `KEY`,
+# `SECRET` or `TOKEN`, which on this host removes `GITHUB_TOKEN`,
+# `GIT_CONFIG_KEY_0..7`, `STARSHIP_SESSION_KEY` and
+# `CLAUDE_CODE_MESSAGING_TOKEN`. It does **not** remove:
+#
+#     SSH_AUTH_SOCK · SSH_AGENT_PID · GPG_AGENT_INFO
+#
+# because those names contain none of the three words. So the agent socket
+# reaches every command the model runs, and with no sandbox and no approvals
+# that means push, force-push, commit signing and SSH to anywhere the loaded
+# keys reach. That is the intended autonomy, not an oversight.
+#
+# `core` would cut this, and would also cut the paths that put this host's own
+# tooling on PATH. `none` with an explicit `set` is what published guidance
+# recommends for an unsandboxed agent; it is not what this posture wants.
+[shell_environment_policy]
+inherit = "all"
+
+# ── Access ──────────────────────────────────────────────────────────────────
+#
+# Everything open, stated explicitly rather than left to defaults.
+#
+# `default_origin_policy` is a struct, not a string: `access`, `downloads` and
+# `uploads` each take `allow` or `deny`, and `full_cdp_access` takes the same
+# two rather than a boolean.
+[browser_use]
+allow_history_access = true
+
+[browser_use.default_origin_policy]
+access    = "allow"
+downloads = "allow"
+uploads   = "allow"
+
+[computer_use]
+default_app_access = "allow"
+
+# ── Session history ─────────────────────────────────────────────────────────
+#
+# The product default, kept deliberately: `resume` and `fork` need it, and so
+# does the memory generation enabled below -- there would be nothing for it to
+# read.
+[history]
+persistence = "save-all"
+
 # ── Memory across sessions ──────────────────────────────────────────────────
 #
 # `features.memories` is one of the four capabilities this build ships stable
