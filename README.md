@@ -174,14 +174,45 @@ fails before the agent answers at all:
 Unsupported value: 'none' is not supported with the 'gpt-6-astra' model
 ```
 
-([openai/codex#44184](https://github.com/openai/codex/issues/44184).) Astra
-accepts `low`, `medium`, `high`, `xhigh` and `max`. This build's catalog offers
-a sixth, `ultra`, which the catalog describes as maximum reasoning *with
-automatic task delegation* — so it does not belong in a posture that runs
-without subagents.
+([openai/codex#44184](https://github.com/openai/codex/issues/44184).)
+
+Three sources list the accepted efforts and they disagree, which is why `xhigh`
+and not something higher:
+
+| Source | Values |
+| --- | --- |
+| config reference | `minimal` `low` `medium` `high` **`xhigh`** |
+| issue #44184, Astra-specific | `low` `medium` `high` **`xhigh`** `max` |
+| this build's catalog | `low` `medium` `high` **`xhigh`** `max` `ultra` |
+
+`xhigh` is the only level above `high` present in all three. `max` is missing
+from the reference, `ultra` from two of the three — and `ultra` delegates to
+sub-tasks anyway, so it does not belong in a posture that runs without
+subagents.
+
+The reference qualifies `xhigh` as *model-dependent, Responses API only*.
+`codex doctor` reports `wire API: responses`, so that holds here.
 
 Verified as far as it can be without a completed turn: the session header reads
 `reasoning effort: xhigh`, from the config and through the launcher alike.
+
+## Every key is documented upstream
+
+Checked against the
+[config reference](https://learn.chatgpt.com/docs/config-file/config-reference):
+
+| Key | Documented default / values |
+| --- | --- |
+| `model_reasoning_effort` | `minimal \| low \| medium \| high \| xhigh` |
+| `approval_policy` | `on-request \| never \| { granular }` |
+| `sandbox_mode` | `read-only \| workspace-write \| danger-full-access` |
+| `model_context_window` | number — *context window tokens available to the active model* |
+| `model_auto_compact_token_limit` | number — *threshold that triggers automatic history compaction* |
+| `agents.enabled` | default `true` — *enable or disable multi-agent tools* |
+| `features.multi_agent` | default `true` — *enable multi-agent collaboration tools* |
+
+`agents.enabled` is confirmed upstream as the documented way to disable
+multi-agent tooling, which is what the measurement here already showed.
 
 ## On trusting this repository
 

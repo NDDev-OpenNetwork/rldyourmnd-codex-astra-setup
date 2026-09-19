@@ -314,6 +314,31 @@ An earlier revision of this repository shipped with the key unset, on the
 reasoning that reasoning had not been decided. That left a configuration which
 could not complete a single turn.
 
+### Why `xhigh` is the safe choice above `high`
+
+Three independent sources list the accepted efforts, and they disagree:
+
+| Source | Values |
+| --- | --- |
+| [config reference](https://learn.chatgpt.com/docs/config-file/config-reference) | `minimal` `low` `medium` `high` **`xhigh`** |
+| [openai/codex#44184](https://github.com/openai/codex/issues/44184), Astra-specific | `low` `medium` `high` **`xhigh`** `max` |
+| this build's model catalog | `low` `medium` `high` **`xhigh`** `max` `ultra` |
+
+`xhigh` is the only level above `high` that appears in **all three**. `max` is
+absent from the config reference; `ultra` is absent from two of the three.
+
+The reference qualifies it as *model-dependent, Responses API only*. This
+session is on Responses — `codex doctor` reports `wire API: responses` with the
+websocket connected — so the qualification is satisfied.
+
+`--strict-config` accepts every effort string, including `minimal`, `ultra` and
+`none`. The schema is permissive and validation happens on the wire, which is
+the same reason `none` parses cleanly and then fails the request.
+
+Published guidance suggests `high` for typical coding and reserves `xhigh` for
+harder work. `xhigh` here is a deliberate choice for how Astra behaves, not a
+misreading of that advice.
+
 ## Feature registry at 0.155.1
 
 `codex features list` counts 142 specs, against 126 at the 0.151.0 pin that
