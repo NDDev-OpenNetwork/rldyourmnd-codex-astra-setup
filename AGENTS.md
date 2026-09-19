@@ -33,8 +33,8 @@ tell you which struct it belongs to. Do not use it as a validator.
 | `sandbox_mode` | `danger-full-access` | |
 | `model_context_window` | `872000` | this account's `max_context_window` |
 | `model_auto_compact_token_limit` | `700000` | 128400 under the 828400 usable ceiling |
-| `features.multi_agent` | `false` | the subagent switch that ships **on** |
-| `features.multi_agent_v2` | `false` | already off; set so the intent is stated |
+| `agents.enabled` | `false` | the switch that actually removes the subagent tools |
+| `features.multi_agent` | `false` | flips a real flag; inert on the prompt |
 
 **872000, not 1000000.** A larger number is not a bigger window, it is a wrong
 one — the catalog ceiling is 872000 and `supports_experimental_context` is
@@ -42,9 +42,11 @@ false.
 
 **The `model_` prefix on the compaction key is load-bearing.** See above.
 
-**`multi_agent`, not just `multi_agent_v2`.** `v2` ships off; `multi_agent`
-ships on. Disabling only `v2` looks correct and does nothing. Note that the
-flag's effect on the `spawn_agent` *tool* is unverified — see the README.
+**`agents.enabled`, not the feature flag.** `features.multi_agent = false`
+changes the rendered prompt by **zero bytes** while moving the feature counter
+to `46 · 1` — which is exactly how an earlier revision convinced itself it had
+disabled subagents. `agents.enabled = false` is what removes the tools, and it
+does not move the counter at all. Check both instruments, never one.
 
 ## `config.toml` is not ours to own
 
@@ -92,6 +94,16 @@ CODEX_HOME="$H" codex doctor --all | grep 'feature flags'
 ```
 
 The feature count must read `46 enabled · 1 overridden`, against
-`47 enabled · 0 overridden` for an empty config — exactly one capability off
-(`multi_agent`) and nothing else touched. Any other number means something was
-turned on that nobody decided on.
+`47 enabled · 0 overridden` for an empty config. Any other number means
+something was turned on that nobody decided on.
+
+The counter is blind to `agents.enabled`. Check that separately, on the prompt:
+
+```sh
+CODEX_HOME="$H" codex debug prompt-input \
+  | grep -o -e spawn_agent -e followup_task -e wait_agent | wc -l
+```
+
+It must be `0`. Run it against a clean `CODEX_HOME`, not this checkout — this
+repository's own `AGENTS.md` mentions `spawn_agent` and is picked up as project
+context.

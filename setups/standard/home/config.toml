@@ -45,20 +45,34 @@ model_auto_compact_token_limit = 700000
 
 # ── No subagents ────────────────────────────────────────────────────────────
 #
-# `multi_agent` is the one that matters: it ships **enabled** at 0.155.1.
-# `multi_agent_v2` already ships off, so disabling it alone looks right and
-# changes nothing — it is set here only so the intent is stated rather than
-# resting on a default.
+# **`agents.enabled` is the switch. The feature flag is not.**
 #
-# Measured: this pair moves the feature count from `47 enabled · 0 overridden`
-# to `46 enabled · 1 overridden`.
+# Measured on the rendered prompt (`codex debug prompt-input`), counting tool
+# names with `grep -o | wc -l`:
 #
-# What is **not** verified: whether the `spawn_agent` tool is actually withheld
-# from the request. `codex debug prompt-input` renders only the message list and
-# carries no tools section, and its text still describes `spawn_agent`,
-# `followup_task`, `send_message`, `wait_agent` and `interrupt_agent` with the
-# feature off — so the prompt is not evidence either way. Settling it needs a
-# completed turn, which the usage limit blocked.
+#                      nothing   features.multi_agent=false   agents.enabled=false
+#     spawn_agent          4               4                          0
+#     followup_task        2               2                          0
+#     send_message         3               3                          0
+#     wait_agent           2               2                          0
+#     interrupt_agent      1               1                          0
+#     prompt bytes     18221           18221                      14661
+#
+# `features.multi_agent = false` changes the prompt by **zero bytes**. It moves
+# the feature counter from `47 enabled · 0 overridden` to `46 · 1`, which is why
+# an earlier revision of this file believed it worked — the counter moved and
+# nothing else did.
+#
+# `agents.enabled = false` removes 3560 bytes and every collaboration tool. It
+# is the documented control: "Enable/disable multi-agent tools", default `true`.
+# It does *not* touch the feature counter, because it is not a feature.
+#
+# The feature flag is kept alongside it because it does flip a real flag that
+# other code paths read (openai/codex#31097 reports it being honoured
+# inconsistently), and costs nothing. `multi_agent_v2` was dropped: it ships off
+# and is inert both ways.
+[agents]
+enabled = false
+
 [features]
 multi_agent = false
-multi_agent_v2 = false

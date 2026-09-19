@@ -23,14 +23,16 @@ sandbox_mode    = "danger-full-access"
 model_context_window           = 872000
 model_auto_compact_token_limit = 700000
 
+[agents]
+enabled = false
+
 [features]
-multi_agent    = false
-multi_agent_v2 = false
+multi_agent = false
 ```
 
 That is the whole file. `codex doctor` reports `46 enabled · 1 overridden` for
-it, against `47 enabled · 0 overridden` for an empty config — exactly one
-capability turned off and nothing else touched.
+it, against `47 enabled · 0 overridden` for an empty config, and all five
+multi-agent tool names count `0` in the rendered prompt.
 
 ## Full auto
 
@@ -98,27 +100,34 @@ Error loading config.toml: unknown configuration field `auto_compact_token_limit
 
 An earlier revision of this repository shipped the wrong one.
 
-## No subagents
+## No subagents — `agents.enabled`, not the feature flag
 
-`multi_agent` is the switch that matters: it ships **enabled** at 0.155.1.
-`multi_agent_v2` already ships off, so disabling that one alone looks right and
-changes nothing; it is set here so the intent is stated rather than resting on a
-default. `multi_agent_mode` and `enable_fanout` are both `removed` at this pin.
+Tool names counted in the rendered prompt:
 
-**What is verified:** the flag applies — the feature count moves from
-`47 enabled · 0 overridden` to `46 enabled · 1 overridden`.
+| Term | nothing | `features.multi_agent=false` | `agents.enabled=false` |
+| --- | --- | --- | --- |
+| `spawn_agent` | 4 | 4 | **0** |
+| `followup_task` | 2 | 2 | **0** |
+| `send_message` | 3 | 3 | **0** |
+| `wait_agent` | 2 | 2 | **0** |
+| `interrupt_agent` | 1 | 1 | **0** |
+| prompt bytes | 18221 | 18221 | 14661 |
 
-**What is not:** whether the `spawn_agent` tool is actually withheld from the
-request. `codex debug prompt-input` carries no tools section — only the message
-list — and that text still describes `spawn_agent`, `followup_task`,
-`send_message`, `wait_agent` and `interrupt_agent` with the feature off. So the
-prompt is not evidence in either direction, and settling it needs a completed
-turn, which the usage limit blocked.
+**`features.multi_agent = false` changes the prompt by zero bytes** — byte-for-byte
+identical. It does move the feature counter to `46 · 1`, which is precisely why
+an earlier revision of this repository believed it was disabling subagents. The
+counter moved; nothing else did.
 
-(`include_collaboration_mode_instructions = false` was tried and is *not* used
-here: it removes a collaboration-*modes* block — mentions of "collaboration"
-drop from 7 to 2 — while leaving every multi-agent tool name in place. It is a
-different thing.)
+`agents.enabled = false` is the documented control — *"Enable/disable
+multi-agent tools"*, default `true` — and it removes 3560 bytes and every
+collaboration tool. It does not move the feature counter, because it is not a
+feature. Two instruments, each blind to what the other sees.
+
+The feature flag is kept beside it because it does flip a real flag that other
+code paths read
+([openai/codex#31097](https://github.com/openai/codex/issues/31097) reports it
+being honoured inconsistently) and costs nothing. `multi_agent_v2` was dropped:
+it ships off and is inert in both directions.
 
 ## Why a launcher and not just a config file
 
@@ -174,5 +183,5 @@ Things measured here that contradict published documentation:
 - `--full-auto` has been **removed**, though guides still recommend it
 - the compaction config key is **`model_auto_compact_token_limit`**, not the
   unprefixed name that appears in write-ups
-- the subagent switch that matters is **`multi_agent`**, which ships on;
-  `multi_agent_v2` is already off and disabling it alone does nothing
+- the subagent switch that matters is **`agents.enabled`**, not the
+  `multi_agent` feature flag, which changes the prompt by zero bytes

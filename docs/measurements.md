@@ -91,9 +91,11 @@ sandbox_mode    = "danger-full-access"
 model_context_window           = 872000
 model_auto_compact_token_limit = 700000
 
+[agents]
+enabled = false
+
 [features]
-multi_agent    = false
-multi_agent_v2 = false
+multi_agent = false
 ```
 
 Every key passes `--strict-config`.
@@ -115,6 +117,10 @@ Feature count, against an empty config as control:
 
 Exactly one capability off and nothing else touched. Any other number means
 something was enabled that nobody decided on.
+
+The counter says nothing about `agents.enabled`, which is not a feature — its
+effect is measured on the rendered prompt instead, below. All five
+collaboration tool names count `0` under this configuration.
 
 ## Autonomy: which flag still exists
 
@@ -183,62 +189,70 @@ Raising the window is not free. The default 272000 is exactly the point above
 which input bills at 2× and output at 1.5×, so this posture spends nearly all of
 a session in the premium band by choice.
 
-## Subagents: the flag applies, the tool effect is unproven
+## Subagents: `agents.enabled` is the switch, the feature flag is not
 
-Switches that exist at 0.155.1:
+This corrects an earlier reading in this file, which recorded the feature flag
+as the control and the tool effect as "unproven". It is now proven, and the flag
+is not the control.
+
+Tool names counted in the rendered prompt (`codex debug prompt-input`, counted
+with `grep -o | wc -l`):
+
+| Term | nothing | `features.multi_agent=false` | `agents.enabled=false` |
+| --- | --- | --- | --- |
+| `spawn_agent` | 4 | 4 | 0 |
+| `followup_task` | 2 | 2 | 0 |
+| `send_message` | 3 | 3 | 0 |
+| `wait_agent` | 2 | 2 | 0 |
+| `interrupt_agent` | 1 | 1 | 0 |
+| prompt bytes | 18221 | 18221 | 14661 |
+
+**`features.multi_agent = false` changes the prompt by zero bytes.** Byte-for-byte
+identical at 18221. It does move the feature counter from
+`47 enabled · 0 overridden` to `46 · 1`, which is exactly why an earlier revision
+believed it worked: the counter moved, so the change looked real.
+
+**`agents.enabled = false` removes 3560 bytes and every collaboration tool.** It
+is the documented control — *"Enable/disable multi-agent tools"*, default `true`
+— and it does **not** touch the feature counter, because it is not a feature.
+Two instruments, each blind to what the other sees.
+
+Also valid at this pin, by `--strict-config`:
+`agents.max_concurrent_threads_per_session`, `agents.max_threads` (its legacy
+alias), `agents.max_depth`, `agents.job_max_runtime_seconds`. None is in the
+setup.
+
+Switch inventory:
 
 ```
-multi_agent       stable   true     ← ships ON, the one that matters
-multi_agent_v2    stable   false    ← already off
+multi_agent       stable   true     ← feature flag, inert on the prompt
+multi_agent_v2    stable   false    ← already off, inert both ways
 multi_agent_mode  removed  false
 enable_fanout     removed  false
 ```
 
-| `config.toml` | feature flags |
-| --- | --- |
-| empty | `47 enabled · 0 overridden` |
-| `multi_agent = false` | `46 enabled · 1 overridden` |
-| `multi_agent = false` + `multi_agent_v2 = false` | `46 enabled · 1 overridden` |
+`multi_agent_v2` was dropped from the setup once this was measured: it ships off
+and changes nothing in either direction. `multi_agent` is kept beside
+`agents.enabled` because it does flip a real flag other code paths read —
+[openai/codex#31097](https://github.com/openai/codex/issues/31097) reports it
+being honoured inconsistently — and costs nothing.
 
-The second and third rows being identical is the point: `multi_agent_v2` is
-already off, so setting it changes nothing. Turning off only `v2` — the more
-modern-looking name — would have looked like a no-subagents posture and done
-nothing at all.
+### A residual that was not what it looked like
 
-**What is not established.** Whether the flag actually withholds the
-`spawn_agent` tool from the request could not be shown from here.
-`codex debug prompt-input` returns only the message list — no `tools`,
-`functions` or `tool_choice` key anywhere in its output — and its text still
-describes `spawn_agent`, `followup_task`, `send_message`, `wait_agent` and
-`interrupt_agent` with the feature off. Diffing the rendered prompt with the
-feature on and off gives identical text apart from ids, paths and timestamps.
-
-The prompt is therefore evidence for neither conclusion. Settling it needs a
-completed turn. The collaboration text does not come from the catalog either:
-`base_instructions` for `gpt-6-astra` is 21420 characters and contains no
-`spawn_agent`.
+With `agents.enabled = false` applied in this repository's own checkout,
+`spawn_agent` still counted `1`. The occurrence was in **this repository's
+`AGENTS.md`**, picked up as project context, not in any tool definition. Against
+a clean `CODEX_HOME` the count is `0`.
 
 ### `include_collaboration_mode_instructions` is a different thing
 
-Tried and rejected for this purpose. Setting it to `false` shortens the prompt
-by about 1044 bytes and drops mentions of "collaboration" from 7 to 2, while
-every multi-agent tool name survives:
+Tried and rejected. Setting it to `false` shortens the prompt by about 1044
+bytes and drops mentions of "collaboration" from 7 to 2, while every multi-agent
+tool name survives — it governs collaboration *modes*, not multi-agent tooling.
 
-| Term | `multi_agent=false` | + `include_collaboration_mode_instructions=false` |
-| --- | --- | --- |
-| `spawn_agent` | 3 | 3 |
-| `followup_task` | 2 | 2 |
-| `send_message` | 3 | 3 |
-| `wait_agent` | 2 | 2 |
-| `interrupt_agent` | 1 | 1 |
-| `collaboration` | 7 | 2 |
-
-It governs collaboration *modes*, not multi-agent tooling, so it is not in the
-setup.
-
-(A first attempt at this count used `grep -c`, which counts matching *lines* —
+(A first attempt at these counts used `grep -c`, which counts matching *lines* —
 and the rendered prompt is a single line of JSON, so every term reported `1`
-whether it appeared once or thirty times. The numbers above come from
+whether it appeared once or thirty times. The numbers here come from
 `grep -o | wc -l`.)
 
 ---
