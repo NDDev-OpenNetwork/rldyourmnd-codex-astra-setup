@@ -10,19 +10,15 @@
 #
 # So the posture is carried on the command line, where nothing can overwrite it,
 # and the file the app owns is left exactly as the app wants it -- which is what
-# keeps browser-use working, because the app's `[marketplaces.*]` and
+# keeps browser use working, because the app's `[marketplaces.*]` and
 # `[plugins."chrome@openai-bundled"]` blocks are what register the native
 # messaging bridge.
 #
-# Those blocks carry absolute paths and are not portable: this build expands
-# neither `~` nor `${HOME}` in a marketplace `source`, so they cannot be shipped
-# in a repository. Leaving them to the app is not a compromise here, it is the
-# only correct owner.
-#
 # Usage:
-#   astra [--ultra] [codex args...]     interactive
-#   astra exec "prompt"                 one-shot, same posture
-#   ASTRA_EFFORT=max astra              override the effort for one run
+#   astra [codex args...]              the standard posture (see below)
+#   astra --safe [codex args...]       keep the sandbox: workspace-write
+#   astra exec "prompt"                one-shot, same posture
+#   ASTRA_EFFORT=xhigh astra           override the effort for one run
 #
 # Anything after the flags is passed through to `codex` untouched, so
 # `astra exec`, `astra resume`, `astra --help` all behave as you would expect.
@@ -31,37 +27,50 @@ set -eu
 
 CODEX_BIN="${ASTRA_CODEX_BIN:-codex}"
 
-# Everyday posture. `astra-ultra` in setups/ documents the reasoning behind the
-# escalation variant; --ultra selects it here.
-EFFORT="${ASTRA_EFFORT:-high}"
-PLAN_EFFORT="${ASTRA_PLAN_EFFORT:-xhigh}"
-COMPACT="${ASTRA_COMPACT:-200000}"
+# ── The standard posture ────────────────────────────────────────────────────
+#
+# `max`, not `ultra`: the catalog describes `ultra` as "Maximum reasoning with
+# automatic task delegation", and this posture runs without subagents. `max` is
+# the deepest level that does not delegate.
+EFFORT="${ASTRA_EFFORT:-max}"
+PLAN_EFFORT="${ASTRA_PLAN_EFFORT:-max}"
+
+# 872000 is this account's `max_context_window`, of which 95% (828400) is
+# usable. 1M does not exist here -- that figure is the API model's window.
+# 800000 fits under the effective ceiling, at the cost of running above the
+# 272000 surcharge threshold for most of the session.
+CONTEXT="${ASTRA_CONTEXT:-872000}"
+COMPACT="${ASTRA_COMPACT:-800000}"
+
+# `never` + `danger-full-access` is precisely what `--yolo` sets; verified by
+# comparing session headers. `--full-auto` was removed in 0.155.1 and
+# `--skip-permissions` never existed here, so neither is used.
+APPROVAL="never"
+SANDBOX="danger-full-access"
 
 case "${1:-}" in
-  --ultra)
+  --safe)
     shift
-    EFFORT="${ASTRA_EFFORT:-ultra}"
-    PLAN_EFFORT="${ASTRA_PLAN_EFFORT:-ultra}"
-    # Compact earlier at this effort: `ultra` spends more tokens per turn and so
-    # reaches the 272K surcharge threshold sooner.
-    COMPACT="${ASTRA_COMPACT:-160000}"
+    # Keep the OS sandbox and still ask for nothing. For a machine where the
+    # containment is not somewhere else.
+    SANDBOX="workspace-write"
     ;;
 esac
 
-# `model_reasoning_effort` is not optional on Astra. Unset, the session header
-# reads `reasoning effort: none`, and `none` is the single value Astra rejects --
-# it suppresses the reasoning budget entirely, while the catalog's own scale
-# starts at `low`.
 exec "$CODEX_BIN" \
   -c model='"gpt-6-astra"' \
   -c model_provider='"openai"' \
+  -c approval_policy="\"$APPROVAL\"" \
+  -c sandbox_mode="\"$SANDBOX\"" \
   -c model_reasoning_effort="\"$EFFORT\"" \
   -c plan_mode_reasoning_effort="\"$PLAN_EFFORT\"" \
+  -c model_context_window="$CONTEXT" \
   -c auto_compact_token_limit="$COMPACT" \
   -c model_reasoning_summary='"detailed"' \
   -c web_search='"live"' \
+  -c features.multi_agent=false \
+  -c features.multi_agent_v2=false \
   -c features.memories=true \
-  -c features.multi_agent_v2=true \
   -c features.recommended_plugins=true \
   -c features.secret_auth_storage=true \
   "$@"

@@ -29,8 +29,9 @@ with the instrument that produced it.
 | Path | What it is |
 | --- | --- |
 | `bin/astra` | the launcher, and the only entry point that survives the app |
-| `setups/astra/` | everyday posture — `config.toml` fallback plus `AGENTS.md` |
-| `setups/astra-ultra/` | escalation posture, same shape |
+| `setups/standard/` | **the main posture** — unsandboxed, no approvals, no subagents |
+| `setups/astra/` | narrower: effort `high`, compaction 200K |
+| `setups/astra-ultra/` | narrower: effort `ultra` — the only posture that delegates |
 | `docs/measurements.md` | readings, instruments, controls, dates |
 | `docs/browser-use.md` | why the app owns `config.toml` |
 
@@ -55,11 +56,23 @@ are not what applies — the launcher is.
 
 ```sh
 sh -n bin/astra                                  # syntax
-ASTRA_CODEX_BIN=echo ./bin/astra --ultra         # what it would pass through
+ASTRA_CODEX_BIN=echo ./bin/astra                 # what it would pass through
+ASTRA_CODEX_BIN=echo ./bin/astra --safe          # the sandboxed variant
 
-H=$(mktemp -d); cp setups/astra/home/config.toml "$H/config.toml"
+H=$(mktemp -d); cp setups/standard/home/config.toml "$H/config.toml"
 CODEX_HOME="$H" codex doctor --all | grep 'feature flags'
 ```
 
 The control for that last one is an empty `config.toml`, which reports
-`47 enabled · 0 overridden` at 0.155.1. A setup here should report `51`.
+`47 enabled · 0 overridden` at 0.155.1. `setups/standard` should report
+`49 enabled · 1 overridden`; `setups/astra` and `setups/astra-ultra`, `51 · 1`.
+
+## Three corrections that are easy to undo by accident
+
+- **`max`, not `ultra`, in `standard`.** `ultra` delegates to sub-tasks by
+  definition, so it cannot coexist with a no-subagents posture. Changing it back
+  silently reintroduces subagents.
+- **`multi_agent`, not just `multi_agent_v2`.** `v2` ships off; the one that
+  ships on is `multi_agent`. Disabling only `v2` looks right and does nothing.
+- **872000, not 1000000.** That is this account's `max_context_window`. A larger
+  number is not a bigger window, it is a wrong one.

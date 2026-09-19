@@ -34,35 +34,58 @@ nothing fighting over the same bytes. The reasoning is in
 ## Using it
 
 ```sh
-astra                      # interactive, everyday posture
-astra --ultra              # escalation posture
+astra                      # interactive, the standard posture
+astra --safe               # same, but keep the workspace-write sandbox
 astra exec "…"             # one-shot, same posture
-ASTRA_EFFORT=max astra     # override the effort for a single run
+ASTRA_EFFORT=xhigh astra   # override the effort for a single run
+ASTRA_COMPACT=200000 astra # override the compaction limit
 ```
 
 Everything after the flags is passed through to `codex` untouched, so
 `astra resume`, `astra review` and `astra --help` behave as you expect.
 
-## The two postures
+## The standard posture
 
-| | `astra` | `astra --ultra` |
-| --- | --- | --- |
-| `model_reasoning_effort` | `high` | `ultra` |
-| `plan_mode_reasoning_effort` | `xhigh` | `ultra` |
-| `auto_compact_token_limit` | 200000 | 160000 |
+`setups/standard` is the main one. Fully autonomous, unsandboxed, no subagents:
 
-`ultra` is the top of Astra's six-level scale and is **not** a louder `max` —
-the catalog describes it as *"Maximum reasoning with automatic task
-delegation"*. Published write-ups list five levels and omit it; this build's own
-catalog is what says it exists.
+| | |
+| --- | --- |
+| `approval_policy` | `never` |
+| `sandbox_mode` | `danger-full-access` |
+| `model_reasoning_effort` | `max` |
+| `model_context_window` | 872000 |
+| `auto_compact_token_limit` | 800000 |
+| `features.multi_agent` | `false` |
 
-The compaction limit goes **down** at the higher effort, not up: above 272K
-tokens input bills at 2× and output at 1.5×, and `ultra` spends more tokens per
-turn, so it reaches that cliff sooner.
+Three things here are not what an article would tell you, and each was measured:
 
-`model_reasoning_effort` is set explicitly in both, and that is not stylistic.
-Unset, the session header reads `reasoning effort: none` — and `none` is the one
-value Astra rejects.
+**`--full-auto` no longer exists.** At 0.155.1 it is
+`error: unexpected argument '--full-auto' found`, and `--skip-permissions` is
+another product's flag. Only `--yolo` survives, and the config pair
+`approval_policy = "never"` + `sandbox_mode = "danger-full-access"` reproduces it
+exactly — same session header.
+
+**`max`, not `ultra`.** The catalog defines `ultra` as *"Maximum reasoning with
+automatic task delegation"* — it is the level that spawns sub-work. A
+no-subagents posture cannot use it. `max` is the deepest non-delegating level.
+
+**872000, not 1M.** The catalog reports `max_context_window = 872000` with
+`effective_context_window_percent = 95`, so the usable ceiling is **828400**
+tokens. The 1.05M figure quoted everywhere is the API model's window, not what
+this build grants this account. 800000 compaction fits under 828400.
+
+Raising the window is not free: the default `context_window` of 272000 is
+exactly the surcharge threshold, above which input bills at 2× and output at
+1.5×. This posture spends most of a session in that band deliberately.
+
+`astra --safe` keeps the OS sandbox (`workspace-write`) and changes nothing else.
+
+### Narrower variants
+
+`setups/astra` (effort `high`, compaction 200K) and `setups/astra-ultra`
+(effort `ultra`, compaction 160K, subagents left on) predate the standard and
+are kept for the cases they describe. `astra-ultra` is the only posture here
+that delegates.
 
 ## Requirements
 
@@ -75,8 +98,9 @@ value Astra rejects.
 
 ```
 bin/astra                      the launcher — the single entry point
-setups/astra/home/             config.toml for the CLI-only case (no app installed)
-setups/astra-ultra/home/       the escalation variant of the same
+setups/standard/               the main posture: yolo, max, 872K window, no subagents
+setups/astra/                  narrower: effort high, compaction 200K
+setups/astra-ultra/            narrower: effort ultra — the one posture that delegates
 docs/measurements.md           every reading, with the instrument and the date
 docs/browser-use.md            why the app owns config.toml here
 ```
@@ -87,10 +111,14 @@ with the app, the launcher is what applies.
 
 ## On trusting this repository
 
-Two things here contradict published documentation, and in both cases the
-measurement won:
+Five things here contradict published documentation or widely repeated advice.
+In every case the measurement won:
 
 - Astra has **six** reasoning efforts on this account, not five
+- its context ceiling here is **872000**, not the 1.05M that is quoted everywhere
+- `--full-auto` has been **removed**, though guides still recommend it
+- the one subagent switch that matters is `multi_agent`, which ships **on**;
+  `multi_agent_v2` is already off and disabling it changes nothing
 - the 0.155.1 registry ships **four** stable-but-disabled features, not the three
   that `codex-setup-system`'s `full-auto` documents against an older pin
 

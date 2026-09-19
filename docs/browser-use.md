@@ -106,9 +106,11 @@ That leaves the command line, which nothing rewrites. `bin/astra` carries the
 posture there, and the app keeps sole ownership of `config.toml`:
 
 ```
-$ astra --ultra exec "…"
+$ astra exec "…"
 model: gpt-6-astra
-reasoning effort: ultra
+approval: never
+sandbox: danger-full-access
+reasoning effort: max
 $ codex plugin list | grep -c 'installed, enabled'
 13
 ```

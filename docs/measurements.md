@@ -219,3 +219,103 @@ Treat `enabled` as the load-bearing number and `overridden` as not understood.
 
 (`doctor` also reports `✗ auth` in these probes: the throwaway home carries no
 credentials. That is a property of the measurement, not of the setup.)
+
+## Autonomy: which flag still exists at 0.155.1
+
+Articles about "Codex YOLO mode" disagree with this build, so the flags were run
+rather than read about. Session headers, `codex exec`:
+
+| Invocation | `approval:` | `sandbox:` |
+| --- | --- | --- |
+| no flags | `never` | `workspace-write [workdir, /tmp, $TMPDIR]` |
+| `--yolo` | `never` | `danger-full-access` |
+| `--dangerously-bypass-approvals-and-sandbox` | `never` | `danger-full-access` |
+| `approval_policy`/`sandbox_mode` in config, no flags | `never` | `danger-full-access` |
+
+And the ones that do **not** exist:
+
+```
+$ codex exec --full-auto …
+error: unexpected argument '--full-auto' found
+
+$ codex exec --skip-permissions …
+error: unexpected argument '--skip-permissions'
+
+$ codex exec --dangerously-skip-permissions …
+error: unexpected argument '--dangerously-skip-permissions'
+```
+
+`--full-auto` has been removed at this pin; the `--skip-permissions` spellings
+belong to a different product entirely. Only `--yolo` and its long form survive,
+and the config pair reproduces them exactly — which is what lets the posture live
+in `bin/astra` instead of depending on a flag.
+
+(`--yolo` does not appear in a `strings` dump of the binary, yet demonstrably
+works. Another reason the string table is only ever used here as a *positive*
+test for a key's existence, never as proof of absence.)
+
+## Astra's real context window on this account
+
+The catalog contradicts the widely quoted figure:
+
+```
+context_window                    272000
+max_context_window                872000
+effective_context_window_percent      95
+supports_experimental_context      false
+```
+
+So the usable ceiling is 872000 × 95% = **828400 tokens**. The 1.05M number that
+appears in write-ups is the API model's window, not what this Codex build grants
+this account — asking for a 1M window here cannot be satisfied.
+
+Note also that the *default* `context_window` of 272000 is exactly the
+long-context surcharge threshold. Raising the window past it is a decision to
+spend at 2× input and 1.5× output, not a free upgrade.
+
+## Subagents: `multi_agent_v2` is not the one that matters
+
+```
+multi_agent       stable  true      ← ships ON
+multi_agent_v2    stable  false     ← already off
+multi_agent_mode  removed false
+enable_fanout     removed false
+```
+
+Turning off `multi_agent_v2` alone changes nothing, because it is off already.
+`multi_agent` is the one that ships enabled, and the model entry carries
+`multi_agent_version = "v2"` and `multi_agent_reasoning_effort = "xhigh"`, so
+the capability is live and would be used.
+
+Measured: `[features] multi_agent = false` moves the count from
+`47 enabled · 0 overridden` to `46 enabled · 1 overridden`.
+
+**`ultra` also delegates.** The catalog describes it as "Maximum reasoning with
+automatic task delegation". A no-subagents posture therefore cannot use `ultra`;
+`max` is the deepest level that does not delegate.
+
+## The `standard` setup, measured
+
+| `config.toml` | feature flags |
+| --- | --- |
+| empty (control) | `47 enabled · 0 overridden` |
+| `setups/standard` | `49 enabled · 1 overridden` |
+
+47 + 3 enabled (`memories`, `recommended_plugins`, `secret_auth_storage`) − 1
+disabled (`multi_agent`) = 49, and `multi_agent_v2` accounts for no change
+because it was already off.
+
+Session header under that config, and identically through `bin/astra`:
+
+```
+model: gpt-6-astra
+approval: never
+sandbox: danger-full-access
+reasoning effort: max
+reasoning summaries: detailed
+```
+
+With `bin/astra --safe`, only the sandbox changes:
+`approval: never · sandbox: workspace-write`. In both cases
+`codex plugin list` still reports 13 plugins `installed, enabled`, so the app's
+browser-use registration is untouched.
