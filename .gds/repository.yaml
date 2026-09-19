@@ -1,0 +1,73 @@
+schema_version: 1
+
+repository:
+  id: "repo_01M2XZ3QKXP76HZ6R1H7C0Y8RS"
+  display_name: "rldyourmnd-codex-astra-setup"
+  roles:
+    - "project"
+  lifecycle: "active"
+
+provider:
+  type: "github"
+  installation: "installation:github-opennetwork"
+  repository_id: 1377600712
+  owner: "NDDev-OpenNetwork"
+  name: "rldyourmnd-codex-astra-setup"
+
+classification:
+  portfolios:
+    - "portfolio:opennetwork-projects"
+  visibility_contract: "public"
+  data_classification: "public"
+
+product:
+  purpose: >-
+    A GPT-6-Astra posture for Codex, carried on the command line so that it
+    survives the ChatGPT desktop app rewriting the configuration file it owns.
+    Four things are settled: reasoning effort, the autonomy posture, the context
+    window and no subagents; everything else is deliberately unset.
+  capabilities:
+    - "apply the posture to any codex invocation through one launcher"
+    - "keep the app's own config.toml intact, so browser use keeps working"
+    - "state every value against a measurement rather than against documentation"
+  entrypoints:
+    - change: "the posture as it is actually applied"
+      path: "bin/astra"
+    - change: "the same posture as a file, for a machine with no desktop app"
+      path: "setups/standard/home/config.toml"
+    - change: "the readings, instruments and controls behind every value"
+      path: "docs/measurements.md"
+
+policy:
+  profiles:
+    - "repository-default"
+    - "opennetwork-default"
+  rollout_ring: "standard"
+
+git:
+  default_branch: "main"
+  integration: "pull-request"
+  branch_model: "task-branches"
+  handoff_pr: "preferred"
+  cleanup: "merged-only"
+
+verification:
+  commands:
+    lint:
+      - "sh -n bin/astra"
+    test:
+      - "codex exec --strict-config -c model_reasoning_effort=\"xhigh\" --skip-git-repo-check --ephemeral x"
+  required:
+    - "lint"
+
+agent:
+  context_profile: "public-module"
+  generated_agents: false
+  serena:
+    enabled: false
+    provenance_required: false
+
+# This repository publishes no artefact. The posture is applied by running
+# `bin/astra` from the checkout, so there is nothing to tag, package or release.
+release:
+  mode: "none"

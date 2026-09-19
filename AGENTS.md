@@ -75,6 +75,7 @@ been decided either.
 | `setups/standard/home/config.toml` | the same posture, for a machine with no desktop app |
 | `docs/measurements.md` | readings, instruments, controls, dates |
 | `docs/browser-use.md` | why the app owns `config.toml` |
+| `.gds/repository.yaml` | the estate anchor — identity, classification, verification lanes |
 
 ## House rules
 
@@ -90,6 +91,7 @@ been decided either.
 ## Verifying a change
 
 ```sh
+gds validate                                     # the estate anchor
 sh -n bin/astra
 ASTRA_CODEX_BIN=echo ./bin/astra                 # what it would pass through
 
