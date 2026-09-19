@@ -1,78 +1,89 @@
 # Agent orientation
 
-This repository carries a GPT-6-Astra posture for Codex. It is configuration and
-one shell script — there is no build, no test suite and no runtime.
+This repository carries a GPT-6-Astra posture for Codex. It is one config file
+and one shell script — no build, no tests, no runtime.
 
-## The one thing to understand before changing anything
+**Scope is deliberately small.** Two things are settled: the autonomy posture
+and the context window. Reasoning effort, capability features, web search and
+subagent policy are *not* set, and they are not oversights. Do not add a key
+because it seems obviously good — add one when it has been decided.
 
-`~/.codex/config.toml` is **owned by the ChatGPT desktop app**, which rewrites it
-from scratch on every launch and discards any key it did not write. That file is
-also where browser use is registered, through `[marketplaces.*]` and
-`[plugins."chrome@openai-bundled"]` blocks carrying absolute paths that this
-build will not expand from `~` or `${HOME}`.
+## Validate with `--strict-config`, never with `doctor`
 
-So:
+`codex doctor` reports `✓ config loaded · parse ok` for a file containing
+nothing but an invented key. It is not a validator.
 
-- **Do not** move the posture into `~/.codex/config.toml`. It will survive until
-  the next app launch and then vanish, silently.
-- **Do not** ship the app's marketplace or plugin blocks here. They are
-  machine-specific by construction.
-- The posture belongs on the command line, in `bin/astra`, where nothing
-  rewrites it.
-- `AGENTS.md` **is** safe to own: measured, the app leaves it alone.
+```sh
+codex exec --strict-config -c '<key>=<value>' --skip-git-repo-check --ephemeral x
+```
 
-`docs/browser-use.md` has the evidence. `docs/measurements.md` has every reading
-with the instrument that produced it.
+That rejects unknown fields and bad variants. It is the only instrument in this
+repository that has ever caught a real mistake — an earlier revision shipped
+`auto_compact_token_limit`, which is a model-*catalog* field rather than a
+config key, in every setup and in the launcher. It parsed. It did nothing.
+
+A `strings` dump of the binary can confirm a key exists somewhere; it cannot
+tell you which struct it belongs to. Do not use it as a validator.
+
+## The two things that are set
+
+| Key | Value | Why |
+| --- | --- | --- |
+| `approval_policy` | `never` | with the next row, exactly what `--yolo` sets |
+| `sandbox_mode` | `danger-full-access` | |
+| `model_context_window` | `872000` | this account's `max_context_window` |
+| `model_auto_compact_token_limit` | `700000` | 128400 under the 828400 usable ceiling |
+
+**872000, not 1000000.** A larger number is not a bigger window, it is a wrong
+one — the catalog ceiling is 872000 and `supports_experimental_context` is
+false.
+
+**The `model_` prefix on the compaction key is load-bearing.** See above.
+
+## `config.toml` is not ours to own
+
+The ChatGPT desktop app rewrites `~/.codex/config.toml` from scratch on every
+launch and discards any key it did not write, and that same file is where it
+registers browser use with absolute paths this build will not expand from `~` or
+`${HOME}`.
+
+So the posture lives in `bin/astra`, on the command line, which nothing
+rewrites. `AGENTS.md` in `CODEX_HOME` *is* safe to own — measured, the app
+leaves it alone — but nothing is placed there yet, because instructions have not
+been decided either.
+
+`docs/browser-use.md` has the evidence.
 
 ## Where things live
 
 | Path | What it is |
 | --- | --- |
 | `bin/astra` | the launcher, and the only entry point that survives the app |
-| `setups/standard/` | **the main posture** — unsandboxed, no approvals, no subagents |
-| `setups/astra/` | narrower: effort `high`, compaction 200K |
-| `setups/astra-ultra/` | narrower: effort `ultra` — the only posture that delegates |
+| `setups/standard/home/config.toml` | the same posture, for a machine with no desktop app |
 | `docs/measurements.md` | readings, instruments, controls, dates |
 | `docs/browser-use.md` | why the app owns `config.toml` |
 
-The `setups/*/home/config.toml` files are the floor for a machine with **no**
-desktop app, where nothing else writes that file. On a machine with the app they
-are not what applies — the launcher is.
-
-## House rules for edits here
+## House rules
 
 - Say what is true. If a check did not run, say it did not run.
 - A number in the documentation needs the command that produced it and a control
-  showing the instrument discriminates. `codex doctor` reports
-  `✓ config loaded · parse ok` for a config containing nothing but an invented
-  key, so "it parses" is not evidence.
+  showing the instrument discriminates.
 - Where the model catalog and a published article disagree, the catalog wins and
   the disagreement gets written down.
-- Do not quietly resolve a reading that does not add up. `docs/measurements.md`
-  records one such discrepancy unexplained on purpose.
+- Do not quietly resolve a reading that does not add up, and do not quietly
+  delete a mistake — `docs/measurements.md` records one of each on purpose.
 - English in code, comments, documentation and commits.
 
 ## Verifying a change
 
 ```sh
-sh -n bin/astra                                  # syntax
+sh -n bin/astra
 ASTRA_CODEX_BIN=echo ./bin/astra                 # what it would pass through
-ASTRA_CODEX_BIN=echo ./bin/astra --safe          # the sandboxed variant
 
 H=$(mktemp -d); cp setups/standard/home/config.toml "$H/config.toml"
+CODEX_HOME="$H" codex exec --strict-config --skip-git-repo-check --ephemeral x
 CODEX_HOME="$H" codex doctor --all | grep 'feature flags'
 ```
 
-The control for that last one is an empty `config.toml`, which reports
-`47 enabled · 0 overridden` at 0.155.1. `setups/standard` should report
-`49 enabled · 1 overridden`; `setups/astra` and `setups/astra-ultra`, `51 · 1`.
-
-## Three corrections that are easy to undo by accident
-
-- **`max`, not `ultra`, in `standard`.** `ultra` delegates to sub-tasks by
-  definition, so it cannot coexist with a no-subagents posture. Changing it back
-  silently reintroduces subagents.
-- **`multi_agent`, not just `multi_agent_v2`.** `v2` ships off; the one that
-  ships on is `multi_agent`. Disabling only `v2` looks right and does nothing.
-- **872000, not 1000000.** That is this account's `max_context_window`. A larger
-  number is not a bigger window, it is a wrong one.
+The feature count must read `47 enabled · 0 overridden` — identical to an empty
+config. Anything else means a capability was turned on that nobody decided on.

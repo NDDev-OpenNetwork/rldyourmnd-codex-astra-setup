@@ -319,3 +319,76 @@ With `bin/astra --safe`, only the sandbox changes:
 `approval: never · sandbox: workspace-write`. In both cases
 `codex plugin list` still reports 13 plugins `installed, enabled`, so the app's
 browser-use registration is untouched.
+
+## `--strict-config` is the instrument. Everything else lies.
+
+This supersedes the `strings` method described above, which was good enough to
+confirm a key exists and **not** good enough to catch a key that exists in the
+*wrong struct*. It let a broken key ship.
+
+`codex exec --strict-config -c <key>=<value>` rejects any field the config
+schema does not define:
+
+```
+$ codex exec --strict-config -c totally_invented_key_xyz=1 …
+Error loading config.toml: unknown configuration field `totally_invented_key_xyz`
+
+$ codex exec --strict-config -c auto_compact_token_limit=200000 …
+Error loading config.toml: unknown configuration field `auto_compact_token_limit`
+```
+
+**The second one is the correction.** `auto_compact_token_limit` is a field of
+the model *catalog* struct (`context_window · max_context_window ·
+auto_compact_token_limit · comp_hash · …`), not of `config.toml`, whose struct
+reads `model_provider · model_context_window · model_auto_compact_token_limit ·
+model_auto_compact_token_limit_scope · approval_policy · …`.
+
+An earlier revision of this repository set the unprefixed name in all three
+setups and in the launcher. It parsed, `codex doctor` said `parse ok`, and it
+did nothing at all — exactly the failure mode this file warns about two sections
+earlier, reproduced by the author of the warning.
+
+Every key now in the repository, re-checked this way:
+
+| Key | `--strict-config` |
+| --- | --- |
+| `model` | OK |
+| `approval_policy` | OK |
+| `sandbox_mode` | OK |
+| `model_context_window` | OK |
+| `model_auto_compact_token_limit` | OK |
+| `auto_compact_token_limit` | **unknown configuration field** |
+
+`model_auto_compact_token_limit_scope` also exists, and takes `total` or
+`body_after_prefix` — `"session"` is rejected with
+`unknown variant \`session\``, which is a second demonstration that the
+instrument discriminates on values and not only on names.
+
+## How much context can actually be given
+
+The question was whether 1M is reachable. It is not, and 872000 is not a
+shortfall — it is what Astra's long-context mode *is* in this client.
+
+| Number | What it is |
+| --- | --- |
+| 1050000 | the API model's advertised window |
+| 872000 | `max_context_window` in this build's catalog, for every model except `gpt-5.5` |
+| 828400 | 872000 × 95% `effective_context_window_percent` — the usable budget |
+| ~258000 | what a default session reports before `model_context_window` is set |
+| 272000 | the catalog default, and exactly the long-context surcharge threshold |
+
+`supports_experimental_context` is `false` for `gpt-6-astra`, the
+`context_management` and `token_budget` features are both `under development`
+and off, and `/extended-context` is reported not to raise Astra's budget
+([oh-my-pi#10968](https://github.com/can1357/oh-my-pi/issues/10968)). There is
+no switch found in this build that goes above 872000.
+
+`model_context_window = 1000000` passes `--strict-config`, because the schema
+accepts any integer. That is not evidence it takes effect, and the catalog
+ceiling is what the client plans against. Whether a larger value is clamped
+could not be measured: reading the effective budget needs `/status` inside an
+interactive session, and the usage limit blocked every turn.
+
+**The settled values:** window 872000, compaction 700000. That leaves 128400
+tokens of headroom under the 828400 ceiling, which is room for a long turn to
+finish rather than being compacted in flight.

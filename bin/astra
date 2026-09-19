@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
-# astra — one entry point for the GPT-6-Astra posture, for both the CLI and the
-# desktop app's own Codex.
+# astra — one entry point for the posture, for both the CLI and the desktop
+# app's own Codex.
 #
 # Why this exists rather than a configuration file alone: the ChatGPT desktop
 # app **rewrites `$CODEX_HOME/config.toml` from scratch on every launch**,
@@ -10,67 +10,48 @@
 #
 # So the posture is carried on the command line, where nothing can overwrite it,
 # and the file the app owns is left exactly as the app wants it -- which is what
-# keeps browser use working, because the app's `[marketplaces.*]` and
-# `[plugins."chrome@openai-bundled"]` blocks are what register the native
-# messaging bridge.
+# keeps browser use working.
+#
+# **Scope: two things are settled so far, the autonomy posture and the context
+# window. Nothing else is set here on purpose.**
 #
 # Usage:
-#   astra [codex args...]              the standard posture (see below)
-#   astra --safe [codex args...]       keep the sandbox: workspace-write
+#   astra [codex args...]              full auto, 872000 window
+#   astra --safe [codex args...]       same, but keep the workspace-write sandbox
 #   astra exec "prompt"                one-shot, same posture
-#   ASTRA_EFFORT=xhigh astra           override the effort for one run
+#   ASTRA_CONTEXT=272000 astra         stay under the price cliff for one run
 #
-# Anything after the flags is passed through to `codex` untouched, so
-# `astra exec`, `astra resume`, `astra --help` all behave as you would expect.
+# Anything after the flags is passed through to `codex` untouched.
 
 set -eu
 
 CODEX_BIN="${ASTRA_CODEX_BIN:-codex}"
 
-# ── The standard posture ────────────────────────────────────────────────────
-#
-# `max`, not `ultra`: the catalog describes `ultra` as "Maximum reasoning with
-# automatic task delegation", and this posture runs without subagents. `max` is
-# the deepest level that does not delegate.
-EFFORT="${ASTRA_EFFORT:-max}"
-PLAN_EFFORT="${ASTRA_PLAN_EFFORT:-max}"
-
-# 872000 is this account's `max_context_window`, of which 95% (828400) is
-# usable. 1M does not exist here -- that figure is the API model's window.
-# 800000 fits under the effective ceiling, at the cost of running above the
-# 272000 surcharge threshold for most of the session.
+# 872000 is this account's `max_context_window`, of which 95% -- 828400 -- is
+# usable. 1M does not exist here; that figure is the API model's window.
+# 700000 leaves 128400 tokens of headroom under it.
 CONTEXT="${ASTRA_CONTEXT:-872000}"
-COMPACT="${ASTRA_COMPACT:-800000}"
+COMPACT="${ASTRA_COMPACT:-700000}"
 
-# `never` + `danger-full-access` is precisely what `--yolo` sets; verified by
-# comparing session headers. `--full-auto` was removed in 0.155.1 and
+# `never` + `danger-full-access` is precisely what `--yolo` sets, verified by
+# comparing session headers. `--full-auto` was removed at 0.155.1 and
 # `--skip-permissions` never existed here, so neither is used.
-APPROVAL="never"
 SANDBOX="danger-full-access"
 
 case "${1:-}" in
   --safe)
     shift
-    # Keep the OS sandbox and still ask for nothing. For a machine where the
-    # containment is not somewhere else.
     SANDBOX="workspace-write"
     ;;
 esac
 
+# Note the `model_` prefix on the compaction key. `auto_compact_token_limit`
+# without it is a model-catalog field, not a config key: `--strict-config`
+# rejects it, and an ordinary run accepts it silently and does nothing.
 exec "$CODEX_BIN" \
   -c model='"gpt-6-astra"' \
-  -c model_provider='"openai"' \
-  -c approval_policy="\"$APPROVAL\"" \
+  -c approval_policy='"never"' \
   -c sandbox_mode="\"$SANDBOX\"" \
-  -c model_reasoning_effort="\"$EFFORT\"" \
-  -c plan_mode_reasoning_effort="\"$PLAN_EFFORT\"" \
   -c model_context_window="$CONTEXT" \
-  -c auto_compact_token_limit="$COMPACT" \
-  -c model_reasoning_summary='"detailed"' \
-  -c web_search='"live"' \
-  -c features.multi_agent=false \
-  -c features.multi_agent_v2=false \
-  -c features.memories=true \
-  -c features.recommended_plugins=true \
-  -c features.secret_auth_storage=true \
+  -c model_auto_compact_token_limit="$COMPACT" \
   "$@"

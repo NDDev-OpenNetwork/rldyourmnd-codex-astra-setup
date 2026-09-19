@@ -1,100 +1,44 @@
 # Managed by codex-setup-system — setup `standard`.
 #
-# **This is the main posture.** Fully autonomous, no sandbox, no approvals, no
-# subagents, on GPT-6-Astra with the context window opened to this account's
-# ceiling.
+# Two things are settled so far: the autonomy posture and the context window.
+# Nothing else belongs in this file yet.
 #
-# Every value is measured against this build rather than taken from
-# documentation. Two of the numbers below are deliberately *not* what was asked
-# for, because the build does not offer what was asked for; both are called out
-# where they occur. Readings are in docs/measurements.md.
+# Every key below was validated with `codex exec --strict-config`, which is the
+# only instrument here that rejects a key that does not exist. See
+# docs/measurements.md.
 
 model = "gpt-6-astra"
-model_provider = "openai"
 
-# ── Autonomy ────────────────────────────────────────────────────────────────
+# ── Full auto ───────────────────────────────────────────────────────────────
 #
-# These two keys together are exactly what `--yolo` does. Verified by comparing
-# session headers: the flag and this pair both produce
-# `approval: never · sandbox: danger-full-access`, where the default is
-# `approval: never · sandbox: workspace-write`.
+# This pair is exactly what `--yolo` sets. Verified by comparing session
+# headers: both produce `approval: never · sandbox: danger-full-access`, where
+# the default is `approval: never · sandbox: workspace-write`.
 #
-# Note for anyone porting instructions from elsewhere: `--full-auto` was
-# **removed** in 0.155.1 (`error: unexpected argument '--full-auto' found`), and
-# `--skip-permissions` / `--dangerously-skip-permissions` have never existed here
-# — those are another product's flags. Articles still recommending them are out
-# of date or about a different tool.
-#
-# This removes the sandbox entirely: commands run with whatever the Codex process
-# itself can do. That is the intent of this posture, and it is only safe because
-# the containment is expected to be somewhere else.
+# `--full-auto` was removed at 0.155.1 and `--skip-permissions` belongs to a
+# different product; neither is used here.
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 
-# ── Reasoning ───────────────────────────────────────────────────────────────
-#
-# `max`, not `ultra`, and that is a correction rather than a preference.
-#
-# The catalog describes `ultra` as "Maximum reasoning with **automatic task
-# delegation**" — it is the level at which the model spawns and coordinates
-# sub-work. A posture that asks for no subagents cannot also ask for `ultra`
-# without contradicting itself. `max` — "Maximum reasoning depth for the hardest
-# problems" — is the ceiling that does not delegate, so it is what "maximally
-# autonomous, no subagents" actually means here.
-#
-# The key is set explicitly because unset yields `reasoning effort: none`, and
-# `none` is the single effort Astra rejects.
-model_reasoning_effort = "max"
-plan_mode_reasoning_effort = "max"
-
-# At this depth the summaries are the only visibility into what the budget
-# bought. Without them a `max` turn is indistinguishable from a cheap one until
-# the bill arrives.
-model_reasoning_summary = "detailed"
-
 # ── Context ─────────────────────────────────────────────────────────────────
 #
-# **872000, not the 1M that was asked for — 1M does not exist on this account.**
-# The catalog is explicit:
+# 872000 is the ceiling. It is not a compromise on the way to 1M -- it is what
+# "1M long-context mode" amounts to in this build:
 #
-#     context_window                   272000   (the default)
-#     max_context_window               872000   (the ceiling)
-#     effective_context_window_percent 95
-#     supports_experimental_context    false
+#     context_window                    272000   the default, and the price cliff
+#     max_context_window                872000   the ceiling
+#     effective_context_window_percent      95   -> 828400 usable
+#     supports_experimental_context      false
 #
-# So the real usable ceiling is 872000 × 95% = **828400 tokens**. The widely
-# quoted 1.05M figure is the API model's window, not what this Codex build will
-# give this account.
+# The 1.05M figure is the API model's window. Codex exposes 872000, and the
+# `/extended-context` toggle does not raise it.
 model_context_window = 872000
 
-# 800000 sits just under that 828400 effective ceiling, which is what was asked
-# for and it does fit.
+# **The key is `model_auto_compact_token_limit`, with the `model_` prefix.**
+# `auto_compact_token_limit` is a field of the model *catalog*, not of this
+# file, and `--strict-config` rejects it as an unknown configuration field --
+# while an ordinary run accepts it silently and does nothing.
 #
-# Understand what it costs. The default `context_window` of 272000 is not an
-# arbitrary number — it is exactly the threshold above which input bills at 2x
-# and output at 1.5x. Compacting at 800000 means this posture runs almost its
-# entire session inside the premium band, by design. That is a deliberate trade
-# of money for continuity, not an oversight.
-auto_compact_token_limit = 800000
-
-# ── Capabilities ────────────────────────────────────────────────────────────
-
-# Cutoff is 2026-04-30; live search is how the model checks what changed since.
-web_search = "live"
-
-# `multi_agent` ships **on** at this pin and is what has to be turned off for
-# "no subagents" to be true — `multi_agent_v2` alone is not enough, it is already
-# off. The model itself carries `multi_agent_version = "v2"` and
-# `multi_agent_reasoning_effort = "xhigh"`, so the capability is real and would
-# otherwise be used.
-#
-# The other three are this build's stable-but-disabled features, which a maximal
-# posture turns on. There are four such features at 0.155.1, not the three that
-# `codex-setup-system`'s `full-auto` documents against an older pin;
-# `secret_auth_storage` is the one that has appeared since.
-[features]
-multi_agent = false
-multi_agent_v2 = false
-memories = true
-recommended_plugins = true
-secret_auth_storage = true
+# 700000 against an effective ceiling of 828400 leaves 128400 tokens of headroom
+# — enough for a long turn to finish rather than being compacted mid-flight.
+model_auto_compact_token_limit = 700000
