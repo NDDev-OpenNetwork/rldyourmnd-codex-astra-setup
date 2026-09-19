@@ -54,4 +54,6 @@ exec "$CODEX_BIN" \
   -c sandbox_mode="\"$SANDBOX\"" \
   -c model_context_window="$CONTEXT" \
   -c model_auto_compact_token_limit="$COMPACT" \
+  -c features.multi_agent=false \
+  -c features.multi_agent_v2=false \
   "$@"

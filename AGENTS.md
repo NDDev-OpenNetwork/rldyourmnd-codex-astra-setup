@@ -3,10 +3,10 @@
 This repository carries a GPT-6-Astra posture for Codex. It is one config file
 and one shell script — no build, no tests, no runtime.
 
-**Scope is deliberately small.** Two things are settled: the autonomy posture
-and the context window. Reasoning effort, capability features, web search and
-subagent policy are *not* set, and they are not oversights. Do not add a key
-because it seems obviously good — add one when it has been decided.
+**Scope is deliberately small.** Three things are settled: the autonomy posture,
+the context window, and no subagents. Reasoning effort, capability features and
+web search are *not* set, and they are not oversights. Do not add a key because
+it seems obviously good — add one when it has been decided.
 
 ## Validate with `--strict-config`, never with `doctor`
 
@@ -25,7 +25,7 @@ config key, in every setup and in the launcher. It parsed. It did nothing.
 A `strings` dump of the binary can confirm a key exists somewhere; it cannot
 tell you which struct it belongs to. Do not use it as a validator.
 
-## The two things that are set
+## What is set
 
 | Key | Value | Why |
 | --- | --- | --- |
@@ -33,12 +33,18 @@ tell you which struct it belongs to. Do not use it as a validator.
 | `sandbox_mode` | `danger-full-access` | |
 | `model_context_window` | `872000` | this account's `max_context_window` |
 | `model_auto_compact_token_limit` | `700000` | 128400 under the 828400 usable ceiling |
+| `features.multi_agent` | `false` | the subagent switch that ships **on** |
+| `features.multi_agent_v2` | `false` | already off; set so the intent is stated |
 
 **872000, not 1000000.** A larger number is not a bigger window, it is a wrong
 one — the catalog ceiling is 872000 and `supports_experimental_context` is
 false.
 
 **The `model_` prefix on the compaction key is load-bearing.** See above.
+
+**`multi_agent`, not just `multi_agent_v2`.** `v2` ships off; `multi_agent`
+ships on. Disabling only `v2` looks correct and does nothing. Note that the
+flag's effect on the `spawn_agent` *tool* is unverified — see the README.
 
 ## `config.toml` is not ours to own
 
@@ -85,5 +91,7 @@ CODEX_HOME="$H" codex exec --strict-config --skip-git-repo-check --ephemeral x
 CODEX_HOME="$H" codex doctor --all | grep 'feature flags'
 ```
 
-The feature count must read `47 enabled · 0 overridden` — identical to an empty
-config. Anything else means a capability was turned on that nobody decided on.
+The feature count must read `46 enabled · 1 overridden`, against
+`47 enabled · 0 overridden` for an empty config — exactly one capability off
+(`multi_agent`) and nothing else touched. Any other number means something was
+turned on that nobody decided on.

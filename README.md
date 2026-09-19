@@ -3,9 +3,9 @@
 A GPT-6-Astra posture for Codex, in one implementation that works for the CLI
 and for the ChatGPT desktop app at the same time.
 
-> **Scope so far: the autonomy posture and the context window.** Nothing else is
-> configured yet, on purpose. Reasoning effort, capability features, web search
-> and subagent policy are all deliberately absent until they are decided.
+> **Scope so far: the autonomy posture, the context window, and no subagents.**
+> Nothing else is configured yet, on purpose. Reasoning effort, capability
+> features and web search are deliberately absent until they are decided.
 
 > **Status: written and locally verified, but no turn has completed.** The
 > account's usage limit was exhausted throughout the measurement session, so
@@ -22,11 +22,15 @@ sandbox_mode    = "danger-full-access"
 
 model_context_window           = 872000
 model_auto_compact_token_limit = 700000
+
+[features]
+multi_agent    = false
+multi_agent_v2 = false
 ```
 
-That is the whole file. `codex doctor` reports `47 enabled · 0 overridden` for
-it — identical to an empty config — which is the check that nothing extra crept
-in.
+That is the whole file. `codex doctor` reports `46 enabled · 1 overridden` for
+it, against `47 enabled · 0 overridden` for an empty config — exactly one
+capability turned off and nothing else touched.
 
 ## Full auto
 
@@ -94,6 +98,28 @@ Error loading config.toml: unknown configuration field `auto_compact_token_limit
 
 An earlier revision of this repository shipped the wrong one.
 
+## No subagents
+
+`multi_agent` is the switch that matters: it ships **enabled** at 0.155.1.
+`multi_agent_v2` already ships off, so disabling that one alone looks right and
+changes nothing; it is set here so the intent is stated rather than resting on a
+default. `multi_agent_mode` and `enable_fanout` are both `removed` at this pin.
+
+**What is verified:** the flag applies — the feature count moves from
+`47 enabled · 0 overridden` to `46 enabled · 1 overridden`.
+
+**What is not:** whether the `spawn_agent` tool is actually withheld from the
+request. `codex debug prompt-input` carries no tools section — only the message
+list — and that text still describes `spawn_agent`, `followup_task`,
+`send_message`, `wait_agent` and `interrupt_agent` with the feature off. So the
+prompt is not evidence in either direction, and settling it needs a completed
+turn, which the usage limit blocked.
+
+(`include_collaboration_mode_instructions = false` was tried and is *not* used
+here: it removes a collaboration-*modes* block — mentions of "collaboration"
+drop from 7 to 2 — while leaving every multi-agent tool name in place. It is a
+different thing.)
+
 ## Why a launcher and not just a config file
 
 The desktop app **rewrites `~/.codex/config.toml` from scratch on every launch**,
@@ -143,3 +169,5 @@ Things measured here that contradict published documentation:
 - `--full-auto` has been **removed**, though guides still recommend it
 - the compaction config key is **`model_auto_compact_token_limit`**, not the
   unprefixed name that appears in write-ups
+- the subagent switch that matters is **`multi_agent`**, which ships on;
+  `multi_agent_v2` is already off and disabling it alone does nothing

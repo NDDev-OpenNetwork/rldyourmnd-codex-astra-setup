@@ -42,3 +42,23 @@ model_context_window = 872000
 # 700000 against an effective ceiling of 828400 leaves 128400 tokens of headroom
 # — enough for a long turn to finish rather than being compacted mid-flight.
 model_auto_compact_token_limit = 700000
+
+# ── No subagents ────────────────────────────────────────────────────────────
+#
+# `multi_agent` is the one that matters: it ships **enabled** at 0.155.1.
+# `multi_agent_v2` already ships off, so disabling it alone looks right and
+# changes nothing — it is set here only so the intent is stated rather than
+# resting on a default.
+#
+# Measured: this pair moves the feature count from `47 enabled · 0 overridden`
+# to `46 enabled · 1 overridden`.
+#
+# What is **not** verified: whether the `spawn_agent` tool is actually withheld
+# from the request. `codex debug prompt-input` renders only the message list and
+# carries no tools section, and its text still describes `spawn_agent`,
+# `followup_task`, `send_message`, `wait_agent` and `interrupt_agent` with the
+# feature off — so the prompt is not evidence either way. Settling it needs a
+# completed turn, which the usage limit blocked.
+[features]
+multi_agent = false
+multi_agent_v2 = false

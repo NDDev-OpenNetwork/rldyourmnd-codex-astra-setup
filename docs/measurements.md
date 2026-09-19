@@ -392,3 +392,65 @@ interactive session, and the usage limit blocked every turn.
 **The settled values:** window 872000, compaction 700000. That leaves 128400
 tokens of headroom under the 828400 ceiling, which is room for a long turn to
 finish rather than being compacted in flight.
+
+## Subagents: the flag applies, the tool effect is unproven
+
+Switches that exist at 0.155.1:
+
+```
+multi_agent       stable   true     ← ships ON, the one that matters
+multi_agent_v2    stable   false    ← already off
+multi_agent_mode  removed  false
+enable_fanout     removed  false
+```
+
+Measured, with an empty config as the control:
+
+| `config.toml` | feature flags |
+| --- | --- |
+| empty | `47 enabled · 0 overridden` |
+| `multi_agent = false` | `46 enabled · 1 overridden` |
+| `multi_agent = false` + `multi_agent_v2 = false` | `46 enabled · 1 overridden` |
+
+The second and third rows being identical is the point: `multi_agent_v2` is
+already off, so setting it changes nothing. Turning off only `v2` — the more
+modern-looking name — would have looked like a no-subagents posture and done
+nothing at all.
+
+**The part that is not established.** Whether the flag actually withholds the
+`spawn_agent` tool from the request could not be shown from here.
+`codex debug prompt-input` returns only the message list — there is no `tools`,
+`functions` or `tool_choice` key anywhere in its output — and its text still
+describes `spawn_agent`, `followup_task`, `send_message`, `wait_agent` and
+`interrupt_agent` with the feature off. Diffing the rendered prompt with the
+feature on and off gives identical text apart from ids, paths and timestamps.
+
+So the prompt is evidence for neither conclusion, and the question needs a
+completed turn. The usage limit blocked every one.
+
+The collaboration text does not come from the catalog either:
+`base_instructions` for `gpt-6-astra` is 21420 characters and contains no
+`spawn_agent`.
+
+### `include_collaboration_mode_instructions` is a different thing
+
+It was tried and rejected for this purpose. Setting it to `false` shortens the
+prompt by about 1044 bytes and drops mentions of "collaboration" from 7 to 2,
+but every multi-agent tool name survives unchanged:
+
+| Term | `multi_agent=false` | + `include_collaboration_mode_instructions=false` |
+| --- | --- | --- |
+| `spawn_agent` | 3 | 3 |
+| `followup_task` | 2 | 2 |
+| `send_message` | 3 | 3 |
+| `wait_agent` | 2 | 2 |
+| `interrupt_agent` | 1 | 1 |
+| `collaboration` | 7 | 2 |
+
+It governs collaboration *modes*, not multi-agent tooling, so it is not in the
+setup.
+
+(A first attempt at this count used `grep -c`, which counts matching *lines* —
+and the rendered prompt is a single line of JSON, so every term reported `1`
+whether it appeared once or thirty times. The numbers above come from
+`grep -o | wc -l`.)
