@@ -61,6 +61,10 @@ exec "$CODEX_BIN" \
   -c model_reasoning_effort="\"$EFFORT\"" \
   -c model_reasoning_summary='"detailed"' \
   -c web_search='"live"' \
+  -c personality='"pragmatic"' \
+  -c model_verbosity='"medium"' \
+  -c tool_output_token_limit=32000 \
+  -c project_doc_max_bytes=65536 \
   -c model_context_window="$CONTEXT" \
   -c model_auto_compact_token_limit="$COMPACT" \
   -c agents.enabled=false \

@@ -40,6 +40,45 @@ model_reasoning_summary = "detailed"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 
+# ── Response style ──────────────────────────────────────────────────────────
+#
+# `pragmatic` of `none | friendly | pragmatic`.
+#
+# `medium` is documented as the product default for verbosity, so this row
+# states it rather than changes it. It is written down because the default is
+# the right value here and a later reader should know that was decided, not
+# inherited by accident.
+personality = "pragmatic"
+model_verbosity = "medium"
+
+# ── Budgets ─────────────────────────────────────────────────────────────────
+#
+# Chosen by arithmetic against this posture's own numbers, not by copying a
+# recommendation.
+#
+# The usable context is 828400 and compaction fires at 700000, so a session has
+# 700000 tokens of room. Against that:
+#
+#     tool_output_token_limit    whole file        outputs before compaction
+#              12000              ~46 KB                    58
+#              32000             ~125 KB                    21
+#              65000             ~253 KB                    10
+#
+# Published guidance puts 12000 at "most development workflows". This posture is
+# not most workflows: **there are no subagents**, so a large read cannot be
+# delegated and absorbed elsewhere. A truncated read is re-read in pieces, and
+# the pieces cost more than the whole would have. 46 KB truncates real source
+# files; 125 KB does not, and 21 such reads still fit before compaction, where
+# 65000 would leave only 10.
+tool_output_token_limit = 32000
+
+# Default is 32768, and it caps the **combined** size of project documentation.
+# A repository with a root AGENTS.md and nested ones can reach that, and the
+# failure is silent truncation of instructions. Doubling it costs about 8000
+# tokens of context in the worst case -- roughly 1% of the compaction budget --
+# to remove a failure mode this repository exists to avoid.
+project_doc_max_bytes = 65536
+
 # ── Knowledge ───────────────────────────────────────────────────────────────
 #
 # The most capable of the four modes this build names -- `disabled`, `cached`,

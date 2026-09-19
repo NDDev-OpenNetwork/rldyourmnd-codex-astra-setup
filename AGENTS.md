@@ -39,6 +39,9 @@ tell you which struct it belongs to. Do not use it as a validator.
 | `web_search` | `live` | cutoff is 2026-04-30 |
 | `memories.*` + `features.memories` | on | durable state in CODEX_HOME |
 | `analytics` / `feedback` | `false` | both default to on |
+| `personality` / `model_verbosity` | `pragmatic` / `medium` | verbosity states the default |
+| `tool_output_token_limit` | `32000` | ~125 KB whole; no subagent to absorb a truncation |
+| `project_doc_max_bytes` | `65536` | default 32768 truncates instructions silently |
 | `agents.enabled` | `false` | the switch that actually removes the subagent tools |
 | `features.multi_agent` | `false` | flips a real flag; inert on the prompt |
 

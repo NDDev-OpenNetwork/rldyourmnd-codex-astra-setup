@@ -23,6 +23,12 @@ model_reasoning_summary = "detailed"
 approval_policy = "never"
 sandbox_mode    = "danger-full-access"
 
+personality     = "pragmatic"
+model_verbosity = "medium"
+
+tool_output_token_limit = 32000
+project_doc_max_bytes   = 65536
+
 web_search = "live"
 
 model_context_window           = 872000
@@ -228,6 +234,20 @@ capabilities this build ships stable-but-disabled; both halves are enabled —
 `use_memories` reads, `generate_memories` writes. This is durable state in
 `$CODEX_HOME`, not session context: it persists by design, which is both the
 point and the cost.
+
+**`personality = "pragmatic"`, `model_verbosity = "medium"`.** `medium` is the
+documented default for verbosity, so that row states a decision rather than
+changes a value.
+
+**Budgets sized by arithmetic.** `tool_output_token_limit = 32000` lets a ~125 KB
+file land whole and still allows 21 such reads before compaction; the usual
+recommendation of 12000 truncates at ~46 KB, which real source files exceed, and
+with no subagents a truncated read cannot be delegated — it is re-read in pieces
+that cost more. `project_doc_max_bytes` doubled to 65536 because the default's
+failure mode is silent truncation of instructions.
+
+Compaction at 700000 is 84.5% of the 828400 usable ceiling, inside the 80–85%
+band that published tuning advice recommends for long autonomous sessions.
 
 **Telemetry off.** `analytics.enabled` and `feedback.enabled` both default to
 on and are both turned off. The credential store is left at its default.

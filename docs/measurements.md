@@ -86,15 +86,28 @@ The whole configuration:
 
 ```toml
 model = "gpt-6-astra"
+model_reasoning_effort = "xhigh"
+model_reasoning_summary = "detailed"
 approval_policy = "never"
-sandbox_mode    = "danger-full-access"
-model_context_window           = 872000
+sandbox_mode = "danger-full-access"
+personality = "pragmatic"
+model_verbosity = "medium"
+tool_output_token_limit = 32000
+project_doc_max_bytes = 65536
+web_search = "live"
+model_context_window = 872000
 model_auto_compact_token_limit = 700000
-
 [agents]
 enabled = false
-
+[memories]
+use_memories = true
+generate_memories = true
+[analytics]
+enabled = false
+[feedback]
+enabled = false
 [features]
+memories = true
 multi_agent = false
 ```
 
@@ -266,6 +279,44 @@ whether it appeared once or thirty times. The numbers here come from
 These are readings about Codex 0.155.1 and the account's catalog. They are not
 all acted on: several describe capabilities this setup deliberately leaves
 unset.
+
+## Budgets, chosen by arithmetic
+
+Two documented defaults:
+
+- `project_doc_max_bytes` — **32768**, and it caps the *combined* size of
+  project documentation
+- `tool_output_token_limit` — no documented hardcoded default. The shell tool's
+  built-in limit is not configurable;
+  [openai/codex#20861](https://github.com/openai/codex/issues/20861) asked for it
+  and was closed as not planned. Published guidance puts 12000 at "most
+  development workflows".
+
+Against this posture's own numbers — 828400 usable, compaction at 700000:
+
+| `tool_output_token_limit` | whole file | outputs before compaction |
+| --- | --- | --- |
+| 12000 | ~46 KB | 58 |
+| **32000** | **~125 KB** | **21** |
+| 65000 | ~253 KB | 10 |
+
+This posture is not "most workflows": **there are no subagents**, so a large
+read cannot be delegated and absorbed elsewhere, and a truncated read is re-read
+in pieces that cost more than the whole would have. 46 KB truncates real source
+files; 125 KB does not, and 21 such reads still fit, where 65000 leaves 10.
+
+`project_doc_max_bytes` doubled to 65536: the failure mode of the default is
+silent truncation of instructions, and the worst-case cost is about 8000 tokens,
+roughly 1% of the compaction budget.
+
+`model_verbosity = "medium"` is the documented product default, so that key
+states a decision rather than changes a value.
+
+### The compaction threshold lands where guidance says it should
+
+Published tuning advice for long autonomous sessions is to compact at 80–85% of
+capacity. 700000 / 828400 = **84.5%** — inside that band. The number was chosen
+before the guidance was found, so this is a check rather than a source.
 
 ## Accepted variants, read off the binary
 
