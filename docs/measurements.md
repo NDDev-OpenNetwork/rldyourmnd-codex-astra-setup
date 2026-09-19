@@ -48,42 +48,7 @@ passing result mean something.
 **`codex doctor` does not validate.** A config consisting only of
 
 ```toml
-model = "gpt-6-astra"
-model_reasoning_effort = "xhigh"
-model_reasoning_summary = "detailed"
-approval_policy = "never"
-sandbox_mode = "danger-full-access"
-personality = "pragmatic"
-model_verbosity = "medium"
-tool_output_token_limit = 32000
-project_doc_max_bytes = 65536
-web_search = "live"
-model_context_window = 872000
-model_auto_compact_token_limit = 700000
-[agents]
-enabled = false
-[shell_environment_policy]
-inherit = "all"
-[browser_use]
-allow_history_access = true
-[browser_use.default_origin_policy]
-access    = "allow"
-downloads = "allow"
-uploads   = "allow"
-[computer_use]
-default_app_access = "allow"
-[history]
-persistence = "save-all"
-[memories]
-use_memories = true
-generate_memories = true
-[analytics]
-enabled = false
-[feedback]
-enabled = false
-[features]
-memories = true
-multi_agent = false
+totally_invented_key_xyz = 1
 ```
 
 reports `✓ config loaded · config.toml parse ok`. "It parses" is never evidence
@@ -134,6 +99,18 @@ model_context_window = 872000
 model_auto_compact_token_limit = 700000
 [agents]
 enabled = false
+[shell_environment_policy]
+inherit = "all"
+[browser_use]
+allow_history_access = true
+[browser_use.default_origin_policy]
+access    = "allow"
+downloads = "allow"
+uploads   = "allow"
+[computer_use]
+default_app_access = "allow"
+[history]
+persistence = "save-all"
 [memories]
 use_memories = true
 generate_memories = true
@@ -145,7 +122,6 @@ enabled = false
 memories = true
 multi_agent = false
 ```
-
 Every key passes `--strict-config`.
 
 Session header under it, and identically through `bin/astra`:
@@ -309,12 +285,6 @@ whether it appeared once or thirty times. The numbers here come from
 
 ---
 
-# Part 3 — Facts about this build
-
-These are readings about Codex 0.155.1 and the account's catalog. They are not
-all acted on: several describe capabilities this setup deliberately leaves
-unset.
-
 ## The environment reaching the model, audited
 
 `shell_environment_policy.inherit` defaults to **`all`**: every variable of the
@@ -349,18 +319,6 @@ This is kept deliberately, and written into the setup rather than left implicit,
 so the consequence is discovered on purpose. Published guidance for an
 unsandboxed agent is `inherit = "none"` with an explicit `set`; that is not what
 this posture wants.
-
-## Guardian and auto-review do nothing here
-
-`approvals_reviewer` accepts `user`, `auto_review` and `guardian_subagent`.
-Auto-review intercepts approval requests that would otherwise stop for a human —
-and with `approval_policy = "never"` there are none, so there is nothing to
-review. `guardian_subagent` is additionally a subagent, which this posture
-disables.
-
-The `guardian_approval` feature ships enabled and is inert here. It is left
-alone rather than disabled, because turning off a feature that does nothing buys
-nothing.
 
 ## Access is opened explicitly
 
@@ -408,6 +366,24 @@ states a decision rather than changes a value.
 Published tuning advice for long autonomous sessions is to compact at 80–85% of
 capacity. 700000 / 828400 = **84.5%** — inside that band. The number was chosen
 before the guidance was found, so this is a check rather than a source.
+
+# Part 3 — Facts about this build
+
+These are readings about Codex 0.155.1 and the account's catalog. They are not
+all acted on: several describe capabilities this setup deliberately leaves
+unset.
+
+## Guardian and auto-review do nothing here
+
+`approvals_reviewer` accepts `user`, `auto_review` and `guardian_subagent`.
+Auto-review intercepts approval requests that would otherwise stop for a human —
+and with `approval_policy = "never"` there are none, so there is nothing to
+review. `guardian_subagent` is additionally a subagent, which this posture
+disables.
+
+The `guardian_approval` feature ships enabled and is inert here. It is left
+alone rather than disabled, because turning off a feature that does nothing buys
+nothing.
 
 ## Accepted variants, read off the binary
 

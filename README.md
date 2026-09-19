@@ -4,9 +4,11 @@ A GPT-6-Astra posture for Codex, in one implementation that works for the CLI
 and for the ChatGPT desktop app at the same time.
 
 > **Decided so far:** the model and its reasoning effort, reasoning visibility,
-> the autonomy posture, web search, the context window, memory across sessions,
-> telemetry, and no subagents. Everything else stays at product defaults until
-> it is decided.
+> the autonomy posture, the context window and its compaction point, no
+> subagents, live web search, memory across sessions, response style, the tool
+> and document budgets, what the environment carries into the model's
+> subprocesses, browser and app access, session history, and telemetry.
+> Everything else stays at product defaults until it is decided.
 
 > **Status: written and locally verified, but no turn has completed.** The
 > account's usage limit was exhausted throughout the measurement session, so
@@ -53,7 +55,6 @@ enabled = false
 memories = true
 multi_agent = false
 ```
-
 That is the whole file. `codex doctor` reports `47 enabled · 2 overridden` for it, against
 `47 enabled · 0 overridden` for an empty config — two deliberate changes,
 `memories` on and `multi_agent` off, which cancel in the count and not in the
@@ -280,6 +281,17 @@ Checked against the
 | `model_auto_compact_token_limit` | number — *threshold that triggers automatic history compaction* |
 | `agents.enabled` | default `true` — *enable or disable multi-agent tools* |
 | `features.multi_agent` | default `true` — *enable multi-agent collaboration tools* |
+| `features.memories` | default `false` — one of four stable-but-disabled capabilities |
+| `web_search` | `disabled \| cached \| indexed \| live`, default `cached` |
+| `personality` | `none \| friendly \| pragmatic` |
+| `model_verbosity` | `low \| medium \| high`, default `medium` |
+| `tool_output_token_limit` | number — no documented default |
+| `project_doc_max_bytes` | number, default `32768` |
+| `shell_environment_policy.inherit` | `core \| all \| none`, default `all` |
+| `browser_use.default_origin_policy.*` | `allow \| deny` per `access` / `downloads` / `uploads` |
+| `computer_use.default_app_access` | `allow \| deny` |
+| `history.persistence` | `save-all \| none`, default `save-all` |
+| `analytics.enabled` / `feedback.enabled` | both default `true` |
 
 `agents.enabled` is confirmed upstream as the documented way to disable
 multi-agent tooling, which is what the measurement here already showed.
