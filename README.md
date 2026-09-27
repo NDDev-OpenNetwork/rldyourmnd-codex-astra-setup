@@ -55,8 +55,8 @@ enabled = false
 memories = true
 multi_agent = false
 ```
-That is the whole file. `codex doctor` reports `47 enabled · 2 overridden` for it, against
-`47 enabled · 0 overridden` for an empty config — two deliberate changes,
+That is the whole file. `codex doctor` reports `52 enabled · 2 overridden` for it, against
+`52 enabled · 0 overridden` for an empty config — two deliberate changes,
 `memories` on and `multi_agent` off, which cancel in the count and not in the
 override tally. All five multi-agent tool names count `0` in the rendered
 prompt.
@@ -73,7 +73,7 @@ what `--yolo` does. Verified by comparing session headers:
 | `--dangerously-bypass-approvals-and-sandbox` | `never` | `danger-full-access` |
 | this config, no flags | `never` | `danger-full-access` |
 
-Two flags that guides still recommend do **not** exist at 0.155.1:
+Two flags that guides still recommend do **not** exist at 0.157.1:
 
 ```
 $ codex exec --full-auto …            error: unexpected argument '--full-auto' found
@@ -133,15 +133,15 @@ Tool names counted in the rendered prompt:
 
 | Term | nothing | `features.multi_agent=false` | `agents.enabled=false` |
 | --- | --- | --- | --- |
-| `spawn_agent` | 4 | 4 | **0** |
+| `spawn_agent` | 3 | 3 | **0** |
 | `followup_task` | 2 | 2 | **0** |
 | `send_message` | 3 | 3 | **0** |
 | `wait_agent` | 2 | 2 | **0** |
 | `interrupt_agent` | 1 | 1 | **0** |
-| prompt bytes | 18221 | 18221 | 14661 |
+| prompt bytes | 15579 | 15579 | 12019 |
 
 **`features.multi_agent = false` changes the prompt by zero bytes** — byte-for-byte
-identical. It does move the feature counter to `46 · 1`, which is precisely why
+identical. It does move the feature counter to `51 · 1`, which is precisely why
 an earlier revision of this repository believed it was disabling subagents. The
 counter moved; nothing else did.
 

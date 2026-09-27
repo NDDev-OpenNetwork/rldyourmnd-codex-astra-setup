@@ -60,7 +60,7 @@ false.
 
 **`agents.enabled`, not the feature flag.** `features.multi_agent = false`
 changes the rendered prompt by **zero bytes** while moving the feature counter
-to `46 · 1` — which is exactly how an earlier revision convinced itself it had
+to `51 · 1` — which is exactly how an earlier revision convinced itself it had
 disabled subagents. `agents.enabled = false` is what removes the tools, and it
 does not move the counter at all. Check both instruments, never one.
 
@@ -111,8 +111,8 @@ CODEX_HOME="$H" codex exec --strict-config --skip-git-repo-check --ephemeral x
 CODEX_HOME="$H" codex doctor --all | grep 'feature flags'
 ```
 
-The feature count must read `47 enabled · 2 overridden`, against
-`47 enabled · 0 overridden` for an empty config. Any other number means
+The feature count must read `52 enabled · 2 overridden`, against
+`52 enabled · 0 overridden` for an empty config. Any other number means
 something was turned on that nobody decided on.
 
 The counter is blind to `agents.enabled`. Check that separately, on the prompt:

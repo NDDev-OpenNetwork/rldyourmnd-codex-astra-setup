@@ -5,14 +5,15 @@ not in what the documentation says. This file records the instrument, the
 reading and the control, so a later reader can re-run a measurement instead of
 trusting a number.
 
-Measured on 2026-09-20 against:
+Measured on 2026-09-20 against the versions in the first column; every
+reading reachable without the owner's desktop was re-measured on 2026-09-27:
 
-| Component | Version |
-| --- | --- |
-| `@openai/codex` | 0.155.1 |
-| ChatGPT desktop (`chatgpt`) | 26.915.31945 |
-| Chrome extension `hehggadaopoacecdllhhajmbjkdcmajg` | 1.26.901.11451 |
-| `codex-setup-system` | 0.0.72 |
+| Component | 2026-09-20 | Re-measured 2026-09-27 |
+| --- | --- | --- |
+| `@openai/codex` | 0.155.1 | 0.157.1 |
+| ChatGPT desktop (`chatgpt`) | 26.915.31945 | not re-measured (owner's mac) |
+| Chrome extension `hehggadaopoacecdllhhajmbjkdcmajg` | 1.26.901.11451 | not re-measured (owner's mac) |
+| `codex-setup-system` | 0.0.72 | 0.0.77 |
 
 **One thing is unverified throughout.** The account's usage limit was exhausted
 for the whole session, so no turn ever completed. Every reading here comes from
@@ -136,8 +137,8 @@ Feature count, against an empty config as control:
 
 | `config.toml` | feature flags |
 | --- | --- |
-| empty (control) | `47 enabled · 0 overridden` |
-| this setup | `47 enabled · 2 overridden` |
+| empty (control) | `52 enabled · 0 overridden` |
+| this setup | `52 enabled · 2 overridden` |
 
 Two deliberate changes — `memories` on, `multi_agent` off — which cancel in the
 `enabled` count and do not cancel in the override tally. Note that here the two
@@ -228,16 +229,16 @@ with `grep -o | wc -l`):
 
 | Term | nothing | `features.multi_agent=false` | `agents.enabled=false` |
 | --- | --- | --- | --- |
-| `spawn_agent` | 4 | 4 | 0 |
+| `spawn_agent` | 3 | 3 | 0 |
 | `followup_task` | 2 | 2 | 0 |
 | `send_message` | 3 | 3 | 0 |
 | `wait_agent` | 2 | 2 | 0 |
 | `interrupt_agent` | 1 | 1 | 0 |
-| prompt bytes | 18221 | 18221 | 14661 |
+| prompt bytes | 15579 | 15579 | 12019 |
 
 **`features.multi_agent = false` changes the prompt by zero bytes.** Byte-for-byte
-identical at 18221. It does move the feature counter from
-`47 enabled · 0 overridden` to `46 · 1`, which is exactly why an earlier revision
+identical at 15579. It does move the feature counter from
+`52 enabled · 0 overridden` to `51 · 1`, which is exactly why an earlier revision
 believed it worked: the counter moved, so the change looked real.
 
 **`agents.enabled = false` removes 3560 bytes and every collaboration tool.** It
@@ -369,7 +370,7 @@ before the guidance was found, so this is a check rather than a source.
 
 # Part 3 — Facts about this build
 
-These are readings about Codex 0.155.1 and the account's catalog. They are not
+These are readings about Codex 0.157.1 and the account's catalog. They are not
 all acted on: several describe capabilities this setup deliberately leaves
 unset.
 
@@ -447,7 +448,7 @@ Unsupported value: 'none' is not supported with the 'gpt-6-astra' model
 [openai/codex#44184](https://github.com/openai/codex/issues/44184) reports this
 against 0.153.4, with the task failing before the agent answers. The accepted
 set there is `low`, `medium`, `high`, `xhigh`, `max` — **five**, with no
-`ultra`, while this build's 0.155.1 catalog reports six including it. The issue
+`ultra`, while the catalog measured at 0.155.1 reports six including it. The issue
 predates this pin, and server acceptance of `ultra` remains untested here.
 
 An earlier revision of this repository shipped with the key unset, on the
@@ -479,26 +480,28 @@ Published guidance suggests `high` for typical coding and reserves `xhigh` for
 harder work. `xhigh` here is a deliberate choice for how Astra behaves, not a
 misreading of that advice.
 
-## Feature registry at 0.155.1
+## Feature registry at 0.157.1
 
-`codex features list` counts 142 specs, against 126 at the 0.151.0 pin that
+`codex features list` counts 150 specs, against 126 at the 0.151.0 pin that
 `codex-setup-system`'s `full-auto` was measured on:
 
 | Stage | Count |
 | --- | --- |
-| under development | 56 |
-| stable | 42 |
-| removed | 37 |
-| experimental | 4 |
-| deprecated | 3 |
+| under development | 57 |
+| stable | 47 |
+| removed | 39 |
+| experimental | 3 |
+| deprecated | 4 |
 
-Stable **and** shipped off are **four**, where `full-auto` documents three:
+Stable **and** shipped off are **four** — the same four `full-auto` documents
+since `codex-setup-system` 0.0.77:
 
     memories · multi_agent_v2 · recommended_plugins · secret_auth_storage
 
-`secret_auth_storage` is the new one. None of these is enabled by this setup —
-they are listed because a maximal posture would have to name them, and because
-any setup copying `full-auto`'s "exactly three" sentence is out of date.
+`secret_auth_storage` was the addition over the earlier "exactly three"
+sentence. None of these is enabled by this setup — they are listed because a
+maximal posture would have to name them, and because any setup copying a
+stale count is out of date.
 
 Relevant capabilities already stable and on: `browser_use`,
 `browser_use_external`, `browser_use_full_cdp_access`, `computer_use`,
@@ -506,16 +509,16 @@ Relevant capabilities already stable and on: `browser_use`,
 
 ### One reading that does not add up
 
-Each stable-but-off feature set *alone* reports `48 enabled · 1 overridden`, and
-the control in the other direction — `browser_use = false`, a feature that ships
-on — reports `46 enabled · 1 overridden`. So a single override counts as one.
-Four together should therefore report four; they reported **one**. `doctor`
-prints the `overrides` and `enabled flags` lists as `<redacted>`, so the
-discrepancy could not be resolved from the outside.
+Each stable-but-off feature set *alone* reports `53 enabled · 1 overridden`,
+and the control in the other direction — `browser_use = false`, a feature that
+ships on — reports `51 enabled · 1 overridden`. So a single override counts as
+one. Four together should therefore report four; they reported **one** (`56
+enabled · 1 overridden`), with the `overrides` list redacted. Single-override
+configs print the name; this one does not, so the discrepancy still could not
+be resolved from the outside.
 
 Treat `enabled` as the load-bearing number and `overridden` as not understood.
-It happens not to matter for the current setup, which turns off exactly one
-feature and reports `1`.
+It happens not to matter for the current setup, whose two changes report `2`.
 
 ## Astra's cost shape
 

@@ -9,7 +9,7 @@ obvious and the failure mode is silent.
 
 ## What the CLI has, and what it does not
 
-At 0.155.1 the feature registry reports all of these as `stable` and enabled:
+At 0.157.1 the feature registry reports all of these as `stable` and enabled:
 
     browser_use · browser_use_external · browser_use_full_cdp_access
     computer_use · in_app_browser
